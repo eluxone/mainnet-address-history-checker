@@ -183,6 +183,7 @@
     let scanned = 0;
     let errors = 0;
     let consecutiveEmpty = 0;
+    let consecutiveTotalFailures = 0;
     let root = null;
 
     try {
@@ -217,7 +218,7 @@
       setAuditBusy(true);
 
       root = window.ethers.HDNodeWallet.fromPhrase(phrase, passphraseInput.value, 'm');
-      const chunkSize = 4;
+      const chunkSize = 1;
 
       for (let offset = 0; offset < count && !stopRequested; offset += chunkSize) {
         const chunk = [];
@@ -229,34 +230,58 @@
           const wallet = root.derivePath(path);
           chunk.push({ index, path, address: wallet.address });
           currentPathMetric.textContent = path;
-          if ((position + 1) % 2 === 0) await new Promise(requestAnimationFrame);
         }
 
         if (stopRequested || chunk.length === 0) break;
-        updateProgress(scanned, count, foundResults.length, errors, chunk.at(-1).path, `Checking ${PROFILE_LABELS[profile]} addresses across supported EVM networks…`);
+        updateProgress(
+          scanned,
+          count,
+          foundResults.length,
+          errors,
+          chunk[0].path,
+          `Checking ${PROFILE_LABELS[profile]} address across supported EVM networks…`
+        );
 
         const checked = await checkAddressBatch(chunk, accessToken);
         for (const item of checked) {
           scanned += 1;
           errors += Number(item.networkErrorCount || 0);
+
           if (item.error) {
             consecutiveEmpty = 0;
+            consecutiveTotalFailures += 1;
           } else if (item.activityFound) {
             consecutiveEmpty = 0;
+            consecutiveTotalFailures = 0;
             appendFoundResult(item);
           } else if (Number(item.successfulNetworkCount || 0) > 0) {
             consecutiveEmpty += 1;
+            consecutiveTotalFailures = 0;
           } else {
             consecutiveEmpty = 0;
+            consecutiveTotalFailures += 1;
           }
-          updateProgress(scanned, count, foundResults.length, errors, item.path, `Checked ${scanned} address${scanned === 1 ? '' : 'es'}…`);
+
+          updateProgress(
+            scanned,
+            count,
+            foundResults.length,
+            errors,
+            item.path,
+            `Checked ${scanned} address${scanned === 1 ? '' : 'es'}…`
+          );
+        }
+
+        if (consecutiveTotalFailures >= 3) {
+          throw new Error('The provider failed all network checks for three consecutive addresses. The audit stopped to prevent unreliable results. Wait a few minutes, verify the enabled Alchemy chains, and try again.');
         }
 
         if (stopGapInput.checked && consecutiveEmpty >= 50) {
           recoveryStatus.textContent = 'Stopped after 50 consecutive addresses with no returned evidence.';
           break;
         }
-        await new Promise((resolve) => setTimeout(resolve, 180));
+
+        await new Promise((resolve) => setTimeout(resolve, 900));
       }
 
       const errorText = errors > 0
@@ -265,8 +290,16 @@
       const summary = stopRequested
         ? `Audit stopped after ${scanned} addresses. ${foundResults.length} address${foundResults.length === 1 ? '' : 'es'} returned activity evidence.${errorText}`
         : `Audit finished. Checked ${scanned} address${scanned === 1 ? '' : 'es'} and found ${foundResults.length} with returned activity evidence.${errorText}`;
-      updateProgress(scanned, count, foundResults.length, errors, currentPathMetric.textContent, stopRequested ? 'Stopped by user' : 'Audit complete');
-      showRecoveryMessage(summary, 'success');
+
+      updateProgress(
+        scanned,
+        count,
+        foundResults.length,
+        errors,
+        currentPathMetric.textContent,
+        stopRequested ? 'Stopped by user' : 'Audit complete'
+      );
+      showRecoveryMessage(summary, errors > 0 ? '' : 'success');
       if (scanned > 0) clearSensitiveFields();
     } catch (error) {
       if (error?.name === 'AbortError' && stopRequested) {
