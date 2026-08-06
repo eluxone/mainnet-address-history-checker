@@ -12,6 +12,12 @@
       "permanent": false
     }
   ],
+  "rewrites": [
+    {
+      "source": "/api/btc-discovery",
+      "destination": "/api/btc-discovery-v2"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -49,6 +55,7 @@
     "api/check-address.mjs": { "maxDuration": 30 },
     "api/audit-addresses.mjs": { "maxDuration": 30 },
     "api/btc-discovery.mjs": { "maxDuration": 300 },
+    "api/btc-discovery-v2.mjs": { "maxDuration": 300 },
     "api/login.mjs": { "maxDuration": 10 }
   }
 }
