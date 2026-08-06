@@ -1,82 +1,57 @@
-# Mainnet Address History Checker
+# Ethereum Recovery & Address Auditor
 
-A manual Ethereum Mainnet public-address checker designed for Vercel.
+A Vercel app with two tools:
 
-## What it checks
+1. **Recovery auditor** — derives Ethereum addresses from a BIP-39 phrase the user already owns and checks those public addresses for Mainnet activity evidence.
+2. **Public address checker** — performs a detailed check for one public Ethereum address.
+
+## Recovery-auditor privacy model
+
+- The recovery phrase and optional BIP-39 passphrase are processed in browser memory.
+- The phrase, passphrase and private keys are never submitted to Vercel or Alchemy.
+- Only derived public addresses, derivation paths and indexes are sent to `/api/audit-addresses`.
+- The app does not use cookies, analytics, localStorage or a database.
+- Sensitive phrase fields are cleared after a completed audit.
+- Exported CSV files contain public results only; they never contain the phrase.
+
+The recovery auditor accepts only an existing phrase supplied by the user. It does not create random phrases or search random wallets.
+
+## Supported derivation profiles
+
+- Standard / MetaMask: `m/44'/60'/0'/0/index`
+- Ledger Live: `m/44'/60'/account'/0/0`
+- Legacy Ledger: `m/44'/60'/0'/index`
+
+The app can audit up to 1,000 derived addresses per run. Checks are sent in small protected batches and can be stopped by the user. The optional gap-stop setting ends the run after 50 consecutive addresses with no returned evidence.
+
+## What the blockchain checks include
 
 - Current ETH balance (`eth_getBalance`)
 - Outgoing transaction count / nonce (`eth_getTransactionCount`)
 - Deployed contract code (`eth_getCode`)
-- Latest incoming and outgoing indexed transfers using Alchemy's Transfers API:
-  - External ETH transfers
-  - Internal ETH transfers
-  - ERC-20 transfers
-  - ERC-721 transfers
-  - ERC-1155 transfers
+- Indexed incoming and outgoing external, internal, ERC-20, ERC-721 and ERC-1155 transfers
 
-The app accepts **public Ethereum addresses only**. It has no seed phrase or private-key input.
+A zero result means those checks returned no evidence; it is not a mathematical proof that an address has never appeared in every possible on-chain context.
 
-## Privacy model
+## Required Vercel environment variables
 
-- Your Alchemy API key stays in a Vercel environment variable.
-- The browser sends only the public address and, if configured, the private app passcode.
-- Responses are marked `no-store`.
-- The app does not use cookies, analytics, localStorage, or a database.
+Open `Project → Settings → Environment Variables` and add:
 
-## Deploy to Vercel
+- `ALCHEMY_API_KEY` — an Alchemy Ethereum Mainnet API key
+- `APP_ACCESS_TOKEN` — a long private passcode; required for recovery-auditor batch checks
 
-### 1. Create an Alchemy Ethereum Mainnet key
+Apply both variables to Production. Redeploy after saving them.
 
-Create an Alchemy app for Ethereum Mainnet and copy its API key.
+## Deployment
 
-### 2. Deploy the folder
+Connect this GitHub repository to Vercel and deploy it using the **Other** framework preset. The repository already contains `vercel.json` and the required API functions.
 
-Install or invoke the Vercel CLI, then run these commands from this project folder:
-
-```bash
-npx vercel
-```
-
-Follow the prompts to link or create a Vercel project.
-
-### 3. Add environment variables
-
-In Vercel, open:
-
-`Project → Settings → Environment Variables`
-
-Add:
-
-- `ALCHEMY_API_KEY` — required
-- `APP_ACCESS_TOKEN` — optional but recommended; choose a long, private passcode
-
-Apply them to Production, Preview, and Development as needed.
-
-### 4. Deploy production
-
-```bash
-npx vercel --prod
-```
-
-Open the deployment URL, enter a public `0x...` address, and run the check.
-
-## Local development
-
-Create `.env.local` from `.env.example`, then run:
+For local development, create `.env.local` from `.env.example`, then run:
 
 ```bash
 npx vercel dev
 ```
 
-Open the local URL printed by Vercel.
+## Security note
 
-## Reading the result
-
-- **ACTIVITY FOUND** means at least one of these was found: non-zero ETH balance, outgoing nonce, contract code, or indexed incoming/outgoing transfers.
-- **NO INDEXED ACTIVITY FOUND** means those checks returned no evidence.
-
-No indexed result can prove with mathematical certainty that an address has never appeared in every possible on-chain context. Provider indexing coverage and unusual event patterns can create limitations.
-
-## Safety boundary
-
-This project is for manually checking public addresses you own or are authorised to inspect. It does not generate recovery phrases, derive private keys, scan random wallets, or move funds.
+Entering a recovery phrase into any hosted webpage carries additional risk, even when the page is designed to keep the phrase local. For a high-value wallet, use a reviewed local copy on a clean computer and verify recovered public addresses against the original wallet software before taking action.
