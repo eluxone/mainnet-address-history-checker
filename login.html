@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Private Access</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="brand-mark" aria-hidden="true">◇</div>
+      <div>
+        <p class="eyebrow">PRIVATE TOOL</p>
+        <h1>Enter website password</h1>
+        <p class="subtitle">This deployment is restricted to approved users.</p>
+      </div>
+    </header>
+
+    <section class="panel checker-panel">
+      <form id="login-form" novalidate>
+        <label for="site-password">Website password</label>
+        <input id="site-password" type="password" autocomplete="current-password" required autofocus>
+        <div class="actions">
+          <button id="login-button" class="primary" type="submit">Unlock website</button>
+        </div>
+      </form>
+      <div id="login-message" class="message" role="alert" aria-live="polite" hidden></div>
+    </section>
+  </main>
+  <script src="/login.js" defer></script>
+</body>
+</html>
