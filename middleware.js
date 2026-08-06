@@ -27,6 +27,11 @@ function normalizeSecret(value) {
   return normalized;
 }
 
+function configuredSecret() {
+  return normalizeSecret(process.env.WALLET_TOOL_PASSWORD)
+    || normalizeSecret(process.env.SITE_PASSWORD);
+}
+
 function toBase64Url(bytes) {
   let binary = '';
   for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
@@ -69,9 +74,9 @@ async function validSession(request, secret) {
 }
 
 export default async function middleware(request) {
-  const secret = normalizeSecret(process.env.SITE_PASSWORD);
+  const secret = configuredSecret();
   if (!secret) {
-    return new Response('SITE_PASSWORD is not configured.', {
+    return new Response('WALLET_TOOL_PASSWORD or SITE_PASSWORD is not configured.', {
       status: 503,
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
     });
