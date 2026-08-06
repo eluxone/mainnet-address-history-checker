@@ -15,6 +15,18 @@ function parseCookies(header) {
   );
 }
 
+function normalizeSecret(value) {
+  let normalized = String(value ?? '').trim();
+  if (normalized.length >= 2) {
+    const first = normalized[0];
+    const last = normalized[normalized.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      normalized = normalized.slice(1, -1).trim();
+    }
+  }
+  return normalized;
+}
+
 function toBase64Url(bytes) {
   let binary = '';
   for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
@@ -57,7 +69,7 @@ async function validSession(request, secret) {
 }
 
 export default async function middleware(request) {
-  const secret = process.env.SITE_PASSWORD;
+  const secret = normalizeSecret(process.env.SITE_PASSWORD);
   if (!secret) {
     return new Response('SITE_PASSWORD is not configured.', {
       status: 503,
