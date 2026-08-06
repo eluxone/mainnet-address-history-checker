@@ -32,15 +32,23 @@ const statusPill = document.querySelector('#status-pill');
 const resultAddress = document.querySelector('#result-address');
 const evidenceList = document.querySelector('#evidence-list');
 const disclaimer = document.querySelector('#disclaimer');
-const balance = document.querySelector('#balance');
-const nonce = document.querySelector('#nonce');
-const addressType = document.querySelector('#address-type');
+const activeNetworkCount = document.querySelector('#active-network-count');
+const checkedNetworkCount = document.querySelector('#checked-network-count');
+const contractNetworkCount = document.querySelector('#contract-network-count');
 const historyCount = document.querySelector('#history-count');
 const partialNote = document.querySelector('#partial-note');
 const historyBody = document.querySelector('#history-body');
 const emptyHistory = document.querySelector('#empty-history');
+const networkSummaryBody = document.querySelector('#network-summary-body');
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+const TX_EXPLORERS = {
+  ethereum: 'https://etherscan.io/tx/',
+  base: 'https://basescan.org/tx/',
+  arbitrum: 'https://arbiscan.io/tx/',
+  optimism: 'https://optimistic.etherscan.io/tx/',
+  polygon: 'https://polygonscan.com/tx/'
+};
 
 function showMessage(text) {
   message.textContent = text;
@@ -56,7 +64,7 @@ function setBusy(isBusy) {
   checkButton.disabled = isBusy;
   pasteButton.disabled = isBusy;
   clearButton.disabled = isBusy;
-  checkButton.textContent = isBusy ? 'Checking Mainnet…' : 'Check Mainnet history';
+  checkButton.textContent = isBusy ? 'Checking EVM networks…' : 'Check EVM history';
 }
 
 function shortenAddress(value) {
@@ -109,6 +117,7 @@ function renderHistory(items, checkedAddress) {
 
   for (const item of items) {
     const row = document.createElement('tr');
+    row.append(createCell(item.networkLabel || item.network || '—'));
     row.append(createCell(formatTimestamp(item.timestamp)));
 
     const directionCell = document.createElement('td');
@@ -129,7 +138,8 @@ function renderHistory(items, checkedAddress) {
     const txCell = document.createElement('td');
     if (item.hash) {
       const link = document.createElement('a');
-      link.href = `https://etherscan.io/tx/${encodeURIComponent(item.hash)}`;
+      const explorerBase = TX_EXPLORERS[item.network] || TX_EXPLORERS.ethereum;
+      link.href = `${explorerBase}${encodeURIComponent(item.hash)}`;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = shortenAddress(item.hash);
@@ -143,20 +153,46 @@ function renderHistory(items, checkedAddress) {
   }
 }
 
+function renderNetworkSummary(items) {
+  networkSummaryBody.replaceChildren();
+  for (const item of items) {
+    const row = document.createElement('tr');
+    row.append(createCell(item.label));
+
+    const statusCell = document.createElement('td');
+    const statusTag = document.createElement('span');
+    statusTag.className = `direction ${item.activityFound ? 'incoming' : 'related'}`;
+    statusTag.textContent = item.activityFound ? 'activity found' : 'no evidence';
+    statusCell.append(statusTag);
+    row.append(statusCell);
+
+    row.append(createCell(`${item.state?.balanceNative ?? '0'} native`));
+    row.append(createCell(item.state?.outgoingTransactionCount ?? '0'));
+    row.append(createCell(item.state?.hasContractCode ? 'Yes' : 'No'));
+    row.append(createCell(item.history?.returned != null ? String(item.history.returned) : '0'));
+
+    const evidenceCell = document.createElement('td');
+    evidenceCell.textContent = item.error || (item.evidence?.join('; ') || '—');
+    if (item.error) evidenceCell.className = 'row-error';
+    row.append(evidenceCell);
+
+    networkSummaryBody.append(row);
+  }
+}
+
 function renderResult(data) {
   const found = Boolean(data.activity?.found);
   statusPanel.classList.toggle('activity', found);
   statusPanel.classList.toggle('empty', !found);
   statusPill.className = `status-pill ${found ? 'activity' : 'empty'}`;
   statusLabel.textContent = data.activity?.label || 'CHECK COMPLETE';
-  statusPill.textContent = found ? 'Used / active evidence' : 'No evidence returned';
+  statusPill.textContent = found ? 'Multi-chain activity detected' : 'No evidence returned';
   resultAddress.textContent = data.address;
 
   evidenceList.replaceChildren();
-  const evidence = data.activity?.evidence || [];
-  const statements = evidence.length
-    ? evidence
-    : ['Balance, outgoing nonce, contract code, and returned indexed transfers are all zero or empty.'];
+  const statements = data.activity?.evidence?.length
+    ? data.activity.evidence
+    : ['No supported network returned non-zero balance, nonce, contract code, or indexed transfer evidence.'];
   for (const statement of statements) {
     const item = document.createElement('li');
     item.textContent = statement;
@@ -164,14 +200,15 @@ function renderResult(data) {
   }
 
   disclaimer.textContent = data.disclaimer || '';
-  balance.textContent = `${data.state?.balanceEth ?? '0'} ETH`;
-  nonce.textContent = data.state?.outgoingTransactionCount ?? '0';
-  addressType.textContent = data.state?.hasContractCode ? 'Smart contract' : 'Externally owned / empty';
-  historyCount.textContent = String(data.history?.returned ?? 0);
+  activeNetworkCount.textContent = String(data.summary?.activeNetworkCount ?? 0);
+  checkedNetworkCount.textContent = String(data.summary?.networksChecked ?? data.networkResults?.length ?? 0);
+  contractNetworkCount.textContent = String(data.summary?.contractNetworkCount ?? 0);
+  historyCount.textContent = String(data.summary?.historyReturned ?? data.history?.returned ?? 0);
   partialNote.textContent = data.history?.partial
-    ? 'Showing the latest returned records; more history exists.'
-    : 'All records returned by this query fit in the current result.';
+    ? 'Showing the latest combined returned records; more history exists on one or more networks.'
+    : 'All returned records fit in the current combined result.';
 
+  renderNetworkSummary(data.networkResults || []);
   renderHistory(data.history?.transfers || [], data.address);
   results.hidden = false;
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -183,7 +220,7 @@ form.addEventListener('submit', async (event) => {
 
   const address = addressInput.value.trim();
   if (!ADDRESS_RE.test(address)) {
-    showMessage('Enter a valid Ethereum address beginning with 0x followed by 40 hexadecimal characters.');
+    showMessage('Enter a valid EVM address beginning with 0x followed by 40 hexadecimal characters.');
     addressInput.focus();
     return;
   }
