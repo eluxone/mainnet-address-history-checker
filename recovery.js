@@ -233,35 +233,23 @@
         }
 
         if (stopRequested || chunk.length === 0) break;
-        updateProgress(
-          scanned,
-          count,
-          foundResults.length,
-          errors,
-          chunk.at(-1).path,
-          `Checking ${PROFILE_LABELS[profile]} addresses across supported EVM networks…`
-        );
+        updateProgress(scanned, count, foundResults.length, errors, chunk.at(-1).path, `Checking ${PROFILE_LABELS[profile]} addresses across supported EVM networks…`);
 
         const checked = await checkAddressBatch(chunk, accessToken);
         for (const item of checked) {
           scanned += 1;
+          errors += Number(item.networkErrorCount || 0);
           if (item.error) {
-            errors += 1;
             consecutiveEmpty = 0;
           } else if (item.activityFound) {
             consecutiveEmpty = 0;
             appendFoundResult(item);
-          } else {
+          } else if (Number(item.successfulNetworkCount || 0) > 0) {
             consecutiveEmpty += 1;
+          } else {
+            consecutiveEmpty = 0;
           }
-          updateProgress(
-            scanned,
-            count,
-            foundResults.length,
-            errors,
-            item.path,
-            `Checked ${scanned} address${scanned === 1 ? '' : 'es'}…`
-          );
+          updateProgress(scanned, count, foundResults.length, errors, item.path, `Checked ${scanned} address${scanned === 1 ? '' : 'es'}…`);
         }
 
         if (stopGapInput.checked && consecutiveEmpty >= 50) {
@@ -271,17 +259,13 @@
         await new Promise((resolve) => setTimeout(resolve, 180));
       }
 
+      const errorText = errors > 0
+        ? ` ${errors} network check${errors === 1 ? '' : 's'} failed and were not treated as empty results.`
+        : '';
       const summary = stopRequested
-        ? `Audit stopped after ${scanned} addresses. ${foundResults.length} address${foundResults.length === 1 ? '' : 'es'} returned activity evidence on the supported EVM networks.`
-        : `Audit finished. Checked ${scanned} address${scanned === 1 ? '' : 'es'} and found ${foundResults.length} with returned activity evidence.`;
-      updateProgress(
-        scanned,
-        count,
-        foundResults.length,
-        errors,
-        currentPathMetric.textContent,
-        stopRequested ? 'Stopped by user' : 'Audit complete'
-      );
+        ? `Audit stopped after ${scanned} addresses. ${foundResults.length} address${foundResults.length === 1 ? '' : 'es'} returned activity evidence.${errorText}`
+        : `Audit finished. Checked ${scanned} address${scanned === 1 ? '' : 'es'} and found ${foundResults.length} with returned activity evidence.${errorText}`;
+      updateProgress(scanned, count, foundResults.length, errors, currentPathMetric.textContent, stopRequested ? 'Stopped by user' : 'Audit complete');
       showRecoveryMessage(summary, 'success');
       if (scanned > 0) clearSensitiveFields();
     } catch (error) {
