@@ -1,32 +1,48 @@
 # EVM Recovery & Address Auditor
 
-A Vercel app with two tools:
+A password-protected Vercel app with three owner-authorized tools:
 
-1. **Recovery auditor** — derives EVM addresses from a BIP-39 phrase the user already owns and checks those public addresses across supported networks.
-2. **Public address checker** — performs a detailed multi-network check for one public EVM address.
+1. **Seed recovery assistant** — recovers one missing or incorrect word from a 12-word MetaMask/Ethereum BIP-39 phrase by matching a known public address.
+2. **Recovery auditor** — derives EVM addresses from a complete BIP-39 phrase the user already owns and checks those public addresses across supported networks.
+3. **Public address checker** — performs a detailed multi-network check for one public EVM address.
+
+## Website access
+
+The entire deployment is protected by `SITE_PASSWORD`. A successful login creates a signed, secure, HTTP-only session cookie that expires after eight hours. The website password is read only from the Vercel environment and is not committed to this repository.
+
+The seed-recovery page is available at `/recover` or `/recovery-assistant.html`.
+
+## Seed recovery assistant
+
+The initial version supports:
+
+- 12-word English BIP-39 phrases
+- MetaMask / standard Ethereum derivation
+- Ledger Live derivation
+- Legacy Ledger derivation
+- exactly one missing word at a known position
+- exactly one incorrect word at a known position
+- a required known `0x...` public address
+- account-index scanning from a user-selected starting index
+- an optional BIP-39 passphrase
+
+All candidate generation, checksum validation and public-address derivation happen inside the browser. The recovery page does not call application APIs while processing the words. It does not generate random phrases or search unknown wallets.
+
+The browser wallet library is installed from the pinned `ethers` package during the Vercel build and served from the same deployment rather than loaded from a third-party CDN.
 
 ## Supported networks
 
-The current deployment checks:
+The current public-address and complete-phrase audit deployment checks the networks configured in the API source. The interface currently highlights Ethereum Mainnet, Base Mainnet and OP Mainnet.
 
-- Ethereum Mainnet
-- Base Mainnet
-- Arbitrum One
-- OP Mainnet
-- Polygon Mainnet
+## Recovery privacy model
 
-The code is structured around a network configuration array so additional providers and networks can be added later.
-
-## Recovery-auditor privacy model
-
-- The recovery phrase and optional BIP-39 passphrase are processed in browser memory.
-- The phrase, passphrase and private keys are never submitted to Vercel or Alchemy.
-- Only derived public addresses, derivation paths and indexes are sent to `/api/audit-addresses`.
-- The app does not use cookies, analytics, localStorage or a database.
-- Sensitive phrase fields are cleared after a completed audit.
-- Exported CSV files contain public results only; they never contain the phrase.
-
-The recovery auditor accepts only an existing phrase supplied by the user. It does not create random phrases or search random wallets.
+- Recovery words and an optional BIP-39 passphrase are processed in browser memory.
+- Recovery words, passphrases and private keys are never intentionally submitted to Vercel, blockchain providers or the application APIs.
+- The seed-recovery assistant requires a known public address and returns a result only when the candidate derives that address.
+- The complete-phrase recovery auditor sends only derived public addresses, derivation paths and indexes to `/api/audit-addresses`.
+- No recovery phrase is written to localStorage, a database or an exported file.
+- Sensitive fields can be cleared manually and are cleared when leaving the recovery page.
+- The website-access session cookie contains only an expiry timestamp and an HMAC signature; it does not contain the password or recovery information.
 
 ## Supported derivation profiles
 
@@ -34,37 +50,33 @@ The recovery auditor accepts only an existing phrase supplied by the user. It do
 - Ledger Live: `m/44'/60'/account'/0/0`
 - Legacy Ledger: `m/44'/60'/0'/index`
 
-The app can audit up to 1,000 derived addresses per run. Public addresses are checked in small protected batches and the audit can be stopped by the user. The optional gap-stop setting ends the run after 50 consecutive addresses with no returned evidence.
-
-## What each network check includes
-
-- Current native balance (`eth_getBalance`)
-- Outgoing transaction count / nonce (`eth_getTransactionCount`)
-- Deployed contract code (`eth_getCode`)
-- Indexed incoming and outgoing external, ERC-20, ERC-721 and ERC-1155 transfers
-- Internal transfers where the provider supports them
-
-A zero result means those checks returned no evidence. It is not a mathematical proof that an address has never appeared on any EVM network.
-
 ## Required Vercel environment variables
 
-Open `Project → Settings → Environment Variables` and add:
+Open `Project → Settings → Environment Variables` and configure:
 
-- `ALCHEMY_API_KEY` — an Alchemy API key with Ethereum, Base, Arbitrum, Optimism and Polygon enabled
-- `APP_ACCESS_TOKEN` — a long private passcode; required for recovery-auditor batch checks
+- `SITE_PASSWORD` — required to unlock the website
+- `ALCHEMY_API_KEY` — required for live blockchain checks
+- `APP_ACCESS_TOKEN` — required by the existing complete-phrase recovery-auditor batch API unless that feature is later migrated fully to the website session
 
-Apply both variables to Production. Redeploy after saving them.
+Apply the variables to the environments you use and redeploy after changing them.
 
 ## Deployment
 
-Connect this GitHub repository to Vercel and deploy it using the **Other** framework preset. The repository already contains `vercel.json` and the required API functions.
+Connect this GitHub repository to Vercel using the **Other** framework preset. The `vercel-build` script copies the pinned browser wallet bundle into `vendor/` before deployment.
 
 For local development, create `.env.local` from `.env.example`, then run:
 
 ```bash
+npm install
 npx vercel dev
+```
+
+Run syntax checks with:
+
+```bash
+npm run check
 ```
 
 ## Security note
 
-Entering a recovery phrase into any hosted webpage carries additional risk, even when the page is designed to keep the phrase local. For a high-value wallet, use a reviewed local copy on a clean computer and verify recovered public addresses against the original wallet software before taking action.
+Entering a recovery phrase into any hosted webpage carries risk, even when the page is designed to keep the phrase local. Use the tool only for a wallet you own or are authorized to recover. For a high-value wallet, prefer a reviewed local copy on a clean computer, verify the recovered public address, and migrate assets to a newly generated wallet if the phrase may have been exposed.
