@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="description" content="Ethereum address history checker and owner-authorized recovery auditor.">
-  <title>Ethereum Recovery & Address Auditor</title>
+  <meta name="description" content="EVM recovery auditor and public address checker.">
+  <title>EVM Recovery & Address Auditor</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -13,9 +13,9 @@
     <header class="hero">
       <div class="brand-mark" aria-hidden="true">Ξ</div>
       <div>
-        <p class="eyebrow">Ethereum Mainnet</p>
+        <p class="eyebrow">Supported EVM networks</p>
         <h1>Recovery & Address Auditor</h1>
-        <p class="subtitle">Recover addresses from a BIP-39 phrase you own, or inspect one public Ethereum address. Recovery phrases are processed only inside your browser.</p>
+        <p class="subtitle">Recover addresses from a BIP-39 phrase you own, or inspect one public address across Ethereum, Base, Arbitrum, Optimism, and Polygon. Recovery phrases are processed only inside your browser.</p>
       </div>
     </header>
 
@@ -28,7 +28,7 @@
       <section class="panel warning-panel">
         <p class="step">OWNER-AUTHORIZED RECOVERY ONLY</p>
         <h2>Use only with a recovery phrase that belongs to you</h2>
-        <p>This hosted page never sends the phrase, passphrase, or private keys to Vercel. It derives public addresses in browser memory and sends only those public addresses for Mainnet checks. For a high-value wallet, run a reviewed local copy instead of entering the phrase into any hosted website.</p>
+        <p>This hosted page never sends the phrase, passphrase, or private keys to Vercel. It derives public addresses in browser memory and sends only those public addresses for EVM checks. For a high-value wallet, run a reviewed local copy instead of entering the phrase into any hosted website.</p>
       </section>
 
       <section class="panel checker-panel" aria-labelledby="recovery-title">
@@ -37,7 +37,7 @@
             <p class="step">BIP-39 RECOVERY AUDIT</p>
             <h2 id="recovery-title">Find addresses from your existing phrase</h2>
           </div>
-          <span class="network-badge">Mainnet</span>
+          <span class="network-badge">Ethereum · Base · Arbitrum · Optimism · Polygon</span>
         </div>
 
         <form id="recovery-form" novalidate>
@@ -120,7 +120,7 @@
           </div>
           <button id="export-recovery" class="secondary" type="button" disabled>Export public results CSV</button>
         </div>
-        <p class="disclaimer">The phrase is not included in this table or exported file. Results contain public addresses, indexes, paths, balances and evidence only.</p>
+        <p class="disclaimer">The phrase is not included in this table or exported file. Results contain public addresses, indexes, paths, active networks and evidence only.</p>
         <div class="table-wrap">
           <table class="recovery-table">
             <thead>
@@ -128,8 +128,7 @@
                 <th>Index</th>
                 <th>Derivation path</th>
                 <th>Public address</th>
-                <th>ETH balance</th>
-                <th>Nonce</th>
+                <th>Active networks</th>
                 <th>Evidence</th>
                 <th>Action</th>
               </tr>
@@ -148,16 +147,16 @@
             <p class="step">PUBLIC ADDRESS ONLY</p>
             <h2 id="checker-title">Check one address in detail</h2>
           </div>
-          <span class="network-badge">Mainnet</span>
+          <span class="network-badge">Ethereum · Base · Arbitrum · Optimism · Polygon</span>
         </div>
 
         <form id="address-form" novalidate>
-          <label for="address">Ethereum address</label>
+          <label for="address">EVM address</label>
           <div class="input-row">
             <input id="address" name="address" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="42" placeholder="0x0000000000000000000000000000000000000000" required>
             <button id="paste-button" class="secondary" type="button">Paste</button>
           </div>
-          <p class="field-help">A valid address contains 0x followed by 40 hexadecimal characters.</p>
+          <p class="field-help">A valid EVM address contains 0x followed by 40 hexadecimal characters.</p>
 
           <div id="access-token-wrap" class="token-wrap">
             <label for="access-token">App passcode <span>(only when configured in Vercel)</span></label>
@@ -165,7 +164,7 @@
           </div>
 
           <div class="actions">
-            <button id="check-button" class="primary" type="submit">Check Mainnet history</button>
+            <button id="check-button" class="primary" type="submit">Check EVM history</button>
             <button id="clear-button" class="secondary" type="button">Clear</button>
           </div>
         </form>
@@ -188,17 +187,42 @@
         </article>
 
         <div class="metric-grid">
-          <article class="metric-card"><p>ETH balance</p><strong id="balance">—</strong></article>
-          <article class="metric-card"><p>Outgoing nonce</p><strong id="nonce">—</strong></article>
-          <article class="metric-card"><p>Address type</p><strong id="address-type">—</strong></article>
+          <article class="metric-card"><p>Active networks</p><strong id="active-network-count">—</strong></article>
+          <article class="metric-card"><p>Networks checked</p><strong id="checked-network-count">—</strong></article>
+          <article class="metric-card"><p>Contract networks</p><strong id="contract-network-count">—</strong></article>
           <article class="metric-card"><p>History returned</p><strong id="history-count">—</strong></article>
         </div>
 
         <article class="panel history-panel">
           <div class="panel-heading history-heading">
             <div>
+              <p class="step">NETWORK SUMMARY</p>
+              <h2>Per-network status</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Network</th>
+                  <th>Status</th>
+                  <th>Balance</th>
+                  <th>Nonce</th>
+                  <th>Contract</th>
+                  <th>Returned</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody id="network-summary-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel history-panel">
+          <div class="panel-heading history-heading">
+            <div>
               <p class="step">LATEST INDEXED TRANSFERS</p>
-              <h2>Address history</h2>
+              <h2>Combined address history</h2>
             </div>
             <p id="partial-note" class="partial-note"></p>
           </div>
@@ -206,6 +230,7 @@
             <table>
               <thead>
                 <tr>
+                  <th>Network</th>
                   <th>Date</th>
                   <th>Direction</th>
                   <th>Type</th>
@@ -223,7 +248,7 @@
     </section>
 
     <footer>
-      <p>No random recovery phrases are generated. The recovery auditor is intended only for locating addresses derived from a phrase you already own.</p>
+      <p>No random recovery phrases are generated. The recovery auditor is intended only for locating addresses derived from a phrase you already own on the supported EVM networks.</p>
     </footer>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng==" crossorigin="anonymous" defer></script>
