@@ -24,25 +24,37 @@ function safeUrlSummary(value) {
   }
 }
 
+function normalizeSupabaseRestUrl(value) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'https:') return null;
+    let path = parsed.pathname.replace(/\/+$/, '');
+    if (!path || path === '/') path = '/rest/v1';
+    else if (!path.endsWith('/rest/v1')) path = `${path}/rest/v1`;
+    parsed.pathname = path;
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
 async function checkSupabase() {
-  const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, '');
+  const rawUrl = process.env.SUPABASE_URL?.trim();
+  const restUrl = normalizeSupabaseRestUrl(rawUrl);
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) {
+  if (!rawUrl || !key) {
     return { ok: false, reason: 'SUPABASE_URL or server key is missing.' };
   }
-
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return { ok: false, reason: 'SUPABASE_URL is not a valid URL.' };
-  }
-  if (parsed.protocol !== 'https:') {
-    return { ok: false, reason: 'SUPABASE_URL must use https.' };
+  if (!restUrl) {
+    return { ok: false, reason: 'SUPABASE_URL must be a valid https URL.' };
   }
 
   try {
-    const response = await fetchWithTimeout(`${url}/rest/v1/btc_candidate_cache?select=search_key&limit=1`, {
+    const response = await fetchWithTimeout(`${restUrl}/btc_candidate_cache?select=search_key&limit=1`, {
       method: 'GET',
       headers: {
         apikey: key,
@@ -57,8 +69,8 @@ async function checkSupabase() {
     if (looksHtml) {
       return {
         ok: false,
-        reason: 'SUPABASE_URL returned an HTML webpage instead of the Supabase REST API. Use the project API URL ending in .supabase.co, not a dashboard/browser URL.',
-        host: safeUrlSummary(url),
+        reason: 'SUPABASE_URL returned an HTML webpage instead of the Supabase REST API. Use the project URL or Data API URL.',
+        host: safeUrlSummary(rawUrl),
         status: response.status
       };
     }
@@ -72,15 +84,15 @@ async function checkSupabase() {
       return {
         ok: false,
         reason: detail || `Supabase REST API returned HTTP ${response.status}.`,
-        host: safeUrlSummary(url),
+        host: safeUrlSummary(rawUrl),
         status: response.status,
         contentType
       };
     }
 
-    return { ok: true, host: safeUrlSummary(url), status: response.status };
+    return { ok: true, host: safeUrlSummary(rawUrl), status: response.status };
   } catch (error) {
-    return { ok: false, reason: error?.message || 'Supabase connection failed.', host: safeUrlSummary(url) };
+    return { ok: false, reason: error?.message || 'Supabase connection failed.', host: safeUrlSummary(rawUrl) };
   }
 }
 
