@@ -1,0 +1,13 @@
+{
+  "name": "mainnet-address-history-checker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node --check api/check-address.mjs && node --check app.js",
+    "dev": "vercel dev"
+  }
+}
