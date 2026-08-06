@@ -3,6 +3,7 @@
 (() => {
   const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
   const VERIFY_INDEX_LIMIT = 200;
+  const MAX_AUDIT_ADDRESSES = 10_000;
   const PROFILE_LABELS = {
     standard: 'Standard / MetaMask',
     'ledger-live': 'Ledger Live',
@@ -37,6 +38,12 @@
   const recoveryResultsBody = document.querySelector('#recovery-results-body');
   const recoveryEmpty = document.querySelector('#recovery-empty');
   const exportButton = document.querySelector('#export-recovery');
+
+  countInput.max = String(MAX_AUDIT_ADDRESSES);
+  const countHelp = document.createElement('p');
+  countHelp.className = 'field-help';
+  countHelp.textContent = 'Maximum 10,000 derived addresses. Large audits run sequentially and can take a long time; keep the 50-empty-address stop enabled unless you have a specific recovery reason.';
+  countInput.insertAdjacentElement('afterend', countHelp);
 
   const verifier = document.createElement('div');
   verifier.className = 'token-wrap';
@@ -198,7 +205,7 @@
             verifiedMatch = { profile, index, path, address };
             profileInput.value = profile;
             if (Number(startInput.value) > index) startInput.value = '0';
-            if (Number(countInput.value) <= index) countInput.value = String(Math.min(index + 1, 1000));
+            if (Number(countInput.value) <= index) countInput.value = String(Math.min(index + 1, MAX_AUDIT_ADDRESSES));
             addPreviewRow(profile, index, path, address);
             verificationPreview.hidden = false;
             setVerificationStatus(`Verified: this phrase and passphrase derive your known address at ${path}.`, 'success');
@@ -352,12 +359,18 @@
       }
 
       const start = safeInteger(startInput, 0, 0x7fffffff, 'Starting index');
-      const count = safeInteger(countInput, 1, 1000, 'Maximum addresses');
+      const count = safeInteger(countInput, 1, MAX_AUDIT_ADDRESSES, 'Maximum addresses');
       if (start + count - 1 > 0x7fffffff) {
         throw new Error('The requested address range exceeds the maximum BIP-32 index.');
       }
       if (knownAddress && verifiedMatch && (verifiedMatch.index < start || verifiedMatch.index >= start + count)) {
         throw new Error(`The verified wallet address is at index ${verifiedMatch.index}, outside the requested scan range.`);
+      }
+      if (count > 1_000 && !stopGapInput.checked) {
+        const proceed = window.confirm(
+          `You requested ${count.toLocaleString()} addresses with the 50-empty-address stop disabled. This can take many hours and consume substantial provider capacity. Continue?`
+        );
+        if (!proceed) return;
       }
 
       const profile = profileInput.value;
