@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="description" content="Browser-only Ethereum wallet recovery assistant for one missing or incorrect BIP-39 word.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'">
   <title>Crypto Wallet Recovery Assistant</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/recovery-assistant.css">
 </head>
 <body>
   <main class="shell">
@@ -125,7 +127,7 @@
     </footer>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng==" crossorigin="anonymous" defer></script>
+  <script src="/vendor/ethers.umd.min.js" defer></script>
   <script src="/recovery-assistant.js" defer></script>
 </body>
 </html>
