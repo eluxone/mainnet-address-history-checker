@@ -15,7 +15,7 @@
       <div>
         <p class="eyebrow">Public Bitcoin analytics</p>
         <h1>BTC Discovery Lab</h1>
-        <p class="subtitle">Search historical public Bitcoin address activity by date, current public balance and inactivity period. This tool never requests or reveals seed phrases, private keys or wallet access.</p>
+        <p class="subtitle">Discover historical public Bitcoin addresses with low-cost candidate queries, cached verification and current public balance checks. This tool never requests or reveals seed phrases, private keys or wallet access.</p>
       </div>
     </header>
 
@@ -33,10 +33,10 @@
     <section class="panel checker-panel" aria-labelledby="btc-search-title">
       <div class="panel-heading">
         <div>
-          <p class="step">HISTORICAL ADDRESS SEARCH</p>
+          <p class="step">HYBRID HISTORICAL SEARCH</p>
           <h2 id="btc-search-title">Find old public Bitcoin addresses</h2>
         </div>
-        <span class="network-badge">Bitcoin Mainnet</span>
+        <span class="network-badge">BigQuery · Supabase · Esplora</span>
       </div>
 
       <form id="btc-search-form" novalidate>
@@ -89,10 +89,11 @@
           </div>
         </div>
 
-        <p class="field-help">Candidate limit controls how many historical public addresses BigQuery evaluates before applying current-balance and inactivity filters. Larger searches can take longer and consume more BigQuery query allowance.</p>
+        <p class="field-help">BigQuery now discovers candidate addresses only once and refuses queries above the configured byte limit. Supabase caches the candidate list and recent address checks. Each request verifies the next small batch through a public Esplora-compatible API.</p>
 
         <div class="actions">
-          <button id="btc-search-button" class="primary" type="submit">Search public BTC data</button>
+          <button id="btc-search-button" class="primary" type="submit">Start new search</button>
+          <button id="btc-continue-button" class="primary" type="button" hidden disabled>Continue search</button>
           <button id="btc-clear-button" class="secondary" type="button">Clear results</button>
         </div>
       </form>
@@ -103,13 +104,13 @@
     <section id="btc-progress" class="panel progress-panel" hidden>
       <div class="status-line">
         <div>
-          <p class="step">QUERY STATUS</p>
-          <h2 id="btc-progress-label">Preparing public-data query…</h2>
+          <p class="step">SEARCH STATUS</p>
+          <h2 id="btc-progress-label">Preparing hybrid public-data search…</h2>
         </div>
-        <span class="status-pill">BigQuery</span>
+        <span class="status-pill">Hybrid cache</span>
       </div>
-      <progress max="100" value="35"></progress>
-      <p class="field-help">The Vercel function is querying Google’s public Bitcoin dataset. Broad searches may take several minutes.</p>
+      <progress max="100" value="45"></progress>
+      <p class="field-help">The first request may run a capped BigQuery candidate query. Continued batches reuse the cached candidate list and recent public-address results.</p>
     </section>
 
     <section id="btc-results" class="panel history-panel" hidden>
@@ -122,10 +123,10 @@
       </div>
 
       <div class="metric-grid">
-        <article class="metric-card"><p>Results returned</p><strong id="btc-result-count">0</strong></article>
-        <article class="metric-card"><p>Candidates evaluated</p><strong id="btc-candidates-count">0</strong></article>
-        <article class="metric-card"><p>Bytes processed</p><strong id="btc-bytes-processed">—</strong></article>
-        <article class="metric-card"><p>Query cache</p><strong id="btc-cache-status">—</strong></article>
+        <article class="metric-card"><p>Results matched</p><strong id="btc-result-count">0</strong></article>
+        <article class="metric-card"><p>Candidates checked</p><strong id="btc-candidates-count">0 / 0</strong></article>
+        <article class="metric-card"><p>BigQuery bytes</p><strong id="btc-bytes-processed">—</strong></article>
+        <article class="metric-card"><p>Address cache</p><strong id="btc-cache-status">—</strong></article>
       </div>
 
       <div class="table-wrap" style="margin-top:18px">
@@ -144,8 +145,8 @@
           <tbody id="btc-results-body"></tbody>
         </table>
       </div>
-      <p id="btc-empty" class="empty-history" hidden>No public addresses matched the selected filters.</p>
-      <p class="disclaimer">Balances and dates are derived from public blockchain records and may lag the Bitcoin network by the public dataset’s update interval. No ownership inference is made.</p>
+      <p id="btc-empty" class="empty-history" hidden>No public addresses matched the checked candidates.</p>
+      <p class="disclaimer">Candidate discovery comes from Google’s public Bitcoin dataset. Current confirmed balances and latest confirmed activity are verified through an Esplora-compatible public API and cached in Supabase. No ownership inference is made.</p>
     </section>
 
     <footer>
