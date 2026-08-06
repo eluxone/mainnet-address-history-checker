@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="description" content="A private Ethereum Mainnet public-address history checker.">
+  <title>Mainnet Address History Checker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="brand-mark" aria-hidden="true">Ξ</div>
+      <div>
+        <p class="eyebrow">Ethereum Mainnet</p>
+        <h1>Address History Checker</h1>
+        <p class="subtitle">Check a public Ethereum address for current state and indexed transfer activity. Never enter a seed phrase or private key.</p>
+      </div>
+    </header>
+
+    <section class="panel checker-panel" aria-labelledby="checker-title">
+      <div class="panel-heading">
+        <div>
+          <p class="step">PUBLIC ADDRESS ONLY</p>
+          <h2 id="checker-title">Check an address</h2>
+        </div>
+        <span class="network-badge">Mainnet</span>
+      </div>
+
+      <form id="address-form" novalidate>
+        <label for="address">Ethereum address</label>
+        <div class="input-row">
+          <input id="address" name="address" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="42" placeholder="0x0000000000000000000000000000000000000000" required>
+          <button id="paste-button" class="secondary" type="button">Paste</button>
+        </div>
+        <p class="field-help">A valid address contains 0x followed by 40 hexadecimal characters.</p>
+
+        <div id="access-token-wrap" class="token-wrap">
+          <label for="access-token">App passcode <span>(only when configured in Vercel)</span></label>
+          <input id="access-token" name="access-token" type="password" autocomplete="current-password" placeholder="Optional deployment passcode">
+        </div>
+
+        <div class="actions">
+          <button id="check-button" class="primary" type="submit">Check Mainnet history</button>
+          <button id="clear-button" class="secondary" type="button">Clear</button>
+        </div>
+      </form>
+
+      <div id="message" class="message" role="alert" aria-live="polite" hidden></div>
+    </section>
+
+    <section id="results" class="results" aria-live="polite" hidden>
+      <article class="panel status-panel">
+        <div class="status-line">
+          <div>
+            <p class="step">RESULT</p>
+            <h2 id="status-label">—</h2>
+          </div>
+          <span id="status-pill" class="status-pill">—</span>
+        </div>
+        <p id="result-address" class="mono address-output"></p>
+        <ul id="evidence-list" class="evidence-list"></ul>
+        <p id="disclaimer" class="disclaimer"></p>
+      </article>
+
+      <div class="metric-grid">
+        <article class="metric-card">
+          <p>ETH balance</p>
+          <strong id="balance">—</strong>
+        </article>
+        <article class="metric-card">
+          <p>Outgoing nonce</p>
+          <strong id="nonce">—</strong>
+        </article>
+        <article class="metric-card">
+          <p>Address type</p>
+          <strong id="address-type">—</strong>
+        </article>
+        <article class="metric-card">
+          <p>History returned</p>
+          <strong id="history-count">—</strong>
+        </article>
+      </div>
+
+      <article class="panel history-panel">
+        <div class="panel-heading history-heading">
+          <div>
+            <p class="step">LATEST INDEXED TRANSFERS</p>
+            <h2>Address history</h2>
+          </div>
+          <p id="partial-note" class="partial-note"></p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Direction</th>
+                <th>Type</th>
+                <th>Asset / value</th>
+                <th>Counterparty</th>
+                <th>Transaction</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+        <p id="empty-history" class="empty-history" hidden>No transfers were returned by the indexed history query.</p>
+      </article>
+    </section>
+
+    <footer>
+      <p>This tool reads public blockchain data. It never asks for or processes recovery phrases, private keys, or wallet passwords.</p>
+    </footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
