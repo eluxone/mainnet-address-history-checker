@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="description" content="Browser-only Ethereum wallet recovery assistant with a device benchmark for one to three missing BIP-39 words.">
+  <meta name="description" content="Browser-only Ethereum wallet recovery assistant for one word or two exact words from user-supplied candidate shortlists.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'">
   <title>Crypto Wallet Recovery Assistant</title>
   <link rel="stylesheet" href="/styles.css">
@@ -17,7 +17,7 @@
       <div>
         <p class="eyebrow">OWNER-AUTHORIZED RECOVERY</p>
         <h1>Crypto Wallet Recovery Assistant</h1>
-        <p class="subtitle">Recover one missing or incorrect word from a 12-word MetaMask/Ethereum BIP-39 phrase, and benchmark how long larger recovery searches would take on this device.</p>
+        <p class="subtitle">Recover one missing or incorrect word, or test two exact positions using candidate words you remember. Candidate testing and address derivation happen inside this browser.</p>
       </div>
     </header>
 
@@ -40,7 +40,7 @@
         </div>
         <span class="network-badge">Synthetic test only</span>
       </div>
-      <p class="disclaimer">This benchmark uses a fixed public dummy phrase. It never reads the recovery-word boxes, wallet address, or passphrase below. The three-word result is an estimate only and does not start a real three-word search.</p>
+      <p class="disclaimer">This benchmark uses a fixed public dummy phrase. It never reads the recovery-word boxes, wallet address, passphrase or candidate lists below. The unrestricted two- and three-word rows are estimates only.</p>
 
       <form id="recovery-estimator-form" novalidate>
         <div class="form-grid three-columns">
@@ -91,14 +91,14 @@
           <tbody id="estimator-results-body"></tbody>
         </table>
       </div>
-      <p id="estimator-note" class="field-help" hidden>Estimates assume a 12-word English BIP-39 phrase and continuously available browser processing. Real speed can change with battery mode, heat, background tabs and browser throttling.</p>
+      <p id="estimator-note" class="field-help" hidden>Estimates assume a 12-word English BIP-39 phrase and continuously available browser processing. Real speed changes with battery mode, heat, background tabs and browser throttling.</p>
     </section>
 
     <section class="panel checker-panel" aria-labelledby="assistant-title">
       <div class="panel-heading">
         <div>
           <p class="step">12-WORD ETHEREUM RECOVERY</p>
-          <h2 id="assistant-title">Find one missing or incorrect word</h2>
+          <h2 id="assistant-title">Find one word or test two remembered shortlists</h2>
         </div>
         <span class="network-badge">MetaMask · Ethereum BIP-39</span>
       </div>
@@ -106,21 +106,49 @@
       <form id="seed-recovery-form" novalidate>
         <label for="recovery-mode">Recovery type</label>
         <select id="recovery-mode">
-          <option value="missing">One word is missing</option>
-          <option value="incorrect">One word is incorrect</option>
+          <option value="missing-one">One word is missing</option>
+          <option value="incorrect-one">One word is incorrect</option>
+          <option value="missing-two">Two words are missing — guided shortlist</option>
+          <option value="incorrect-two">Two words are incorrect — guided shortlist</option>
         </select>
         <p id="mode-help" class="field-help">Leave exactly one numbered word box empty where the missing word belongs.</p>
 
         <div id="word-grid" class="word-grid" aria-label="Twelve recovery word positions"></div>
 
         <div id="incorrect-position-wrap" hidden>
-          <label for="incorrect-position">Incorrect word position</label>
-          <select id="incorrect-position"></select>
+          <div class="form-grid two-columns">
+            <div>
+              <label for="incorrect-position">First incorrect word position</label>
+              <select id="incorrect-position"></select>
+            </div>
+            <div id="incorrect-position-second-wrap" hidden>
+              <label for="incorrect-position-second">Second incorrect word position</label>
+              <select id="incorrect-position-second"></select>
+            </div>
+          </div>
+        </div>
+
+        <div id="two-word-candidate-wrap" class="long-search-warning" hidden>
+          <p><strong>Guided two-word recovery:</strong> enter the possible words you remember for each exact position. Each list accepts up to 32 English BIP-39 words, giving a maximum of 1,024 combinations. Separate words with spaces, commas or new lines.</p>
+          <div class="form-grid two-columns candidate-list-grid">
+            <div>
+              <label id="first-candidate-label" for="first-candidate-list">Candidate words for first position</label>
+              <textarea id="first-candidate-list" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="possible word one, possible word two"></textarea>
+            </div>
+            <div>
+              <label id="second-candidate-label" for="second-candidate-list">Candidate words for second position</label>
+              <textarea id="second-candidate-list" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="possible word one, possible word two"></textarea>
+            </div>
+          </div>
+          <label class="check-row" for="two-word-confirmation">
+            <input id="two-word-confirmation" type="checkbox">
+            <span>I understand the two-word search is limited to the candidate words I supplied.</span>
+          </label>
         </div>
 
         <label for="known-recovery-address">Known public wallet address</label>
         <input id="known-recovery-address" type="text" maxlength="42" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x... address derived from this phrase" required>
-        <p class="field-help">Required. The assistant returns a phrase only when it derives this exact public address.</p>
+        <p class="field-help">Required. A result is returned only when it derives this exact public address.</p>
 
         <div class="form-grid three-columns">
           <div>
@@ -168,7 +196,13 @@
         <span id="seed-progress-label" class="status-pill">0 / 0</span>
       </div>
       <progress id="seed-progress" max="100" value="0"></progress>
-      <p class="field-help">No candidate phrase or private key is sent to an API.</p>
+      <div class="metric-grid recovery-live-metrics">
+        <article class="metric-card"><p>Combinations tested</p><strong id="seed-tested-count">0</strong></article>
+        <article class="metric-card"><p>Checksum-valid phrases</p><strong id="seed-valid-count">0</strong></article>
+        <article class="metric-card"><p>Current speed</p><strong id="seed-rate">Calculating…</strong></article>
+        <article class="metric-card"><p>Estimated time remaining</p><strong id="seed-eta">Calculating…</strong></article>
+      </div>
+      <p class="field-help">No candidate phrase, passphrase or private key is sent to an API.</p>
     </section>
 
     <section id="seed-result-panel" class="panel history-panel" hidden>
@@ -185,7 +219,7 @@
     </section>
 
     <footer>
-      <p>The hosted recovery tool tests only one missing or incorrect word. The estimator can benchmark larger search spaces without processing a real wallet phrase.</p>
+      <p>One-word recovery can test the full BIP-39 word list. Two-word recovery is intentionally limited to exact positions and user-supplied candidate shortlists. Three-word recovery remains estimate-only.</p>
     </footer>
   </main>
 
