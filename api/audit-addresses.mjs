@@ -1,8 +1,43 @@
 import crypto from "node:crypto";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
-const MAX_ADDRESSES = 10;
-const CATEGORIES = ["external", "internal", "erc20", "erc721", "erc1155"];
+const MAX_ADDRESSES = 4;
+const DEFAULT_CATEGORIES = ["external", "erc20", "erc721", "erc1155"];
+
+function supportedNetworks(apiKey) {
+  return [
+    {
+      key: "ethereum",
+      label: "Ethereum",
+      categories: [...DEFAULT_CATEGORIES, "internal"],
+      endpoint: `https://eth-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+    },
+    {
+      key: "base",
+      label: "Base",
+      categories: DEFAULT_CATEGORIES,
+      endpoint: `https://base-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+    },
+    {
+      key: "arbitrum",
+      label: "Arbitrum",
+      categories: DEFAULT_CATEGORIES,
+      endpoint: `https://arb-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+    },
+    {
+      key: "optimism",
+      label: "Optimism",
+      categories: DEFAULT_CATEGORIES,
+      endpoint: `https://opt-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+    },
+    {
+      key: "polygon",
+      label: "Polygon",
+      categories: [...DEFAULT_CATEGORIES, "internal"],
+      endpoint: `https://polygon-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+    }
+  ];
+}
 
 function setResponseHeaders(response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
@@ -76,7 +111,7 @@ function getBatchItem(batch, id) {
   return item.result;
 }
 
-function weiToEthString(hexWei) {
+function weiToNativeString(hexWei) {
   const wei = BigInt(hexWei || "0x0");
   const base = 10n ** 18n;
   const whole = wei / base;
@@ -84,12 +119,11 @@ function weiToEthString(hexWei) {
   return fraction ? `${whole}.${fraction.slice(0, 8)}` : whole.toString();
 }
 
-async function inspectAddress(endpoint, item, ordinal) {
-  const address = item.address;
+async function inspectAddressOnNetwork(network, address, ordinal) {
   const transferBase = {
     fromBlock: "0x0",
     toBlock: "latest",
-    category: CATEGORIES,
+    category: network.categories,
     excludeZeroValue: false,
     withMetadata: false,
     order: "desc",
@@ -115,7 +149,7 @@ async function inspectAddress(endpoint, item, ordinal) {
     }
   ];
 
-  const batch = await alchemyRpc(endpoint, payload);
+  const batch = await alchemyRpc(network.endpoint, payload);
   const balanceHex = getBatchItem(batch, baseId + 1);
   const nonceHex = getBatchItem(batch, baseId + 2);
   const codeHex = getBatchItem(batch, baseId + 3);
@@ -130,23 +164,59 @@ async function inspectAddress(endpoint, item, ordinal) {
   const activityFound = balanceWei > 0n || nonce > 0n || hasContractCode || incomingFound || outgoingFound;
 
   const evidence = [];
-  if (balanceWei > 0n) evidence.push("Non-zero ETH balance");
-  if (nonce > 0n) evidence.push("Outgoing transaction nonce is non-zero");
+  if (balanceWei > 0n) evidence.push("Non-zero native balance");
+  if (nonce > 0n) evidence.push("Outgoing transaction count is non-zero");
   if (hasContractCode) evidence.push("Contract code exists at the address");
   if (incomingFound) evidence.push("Indexed incoming transfer found");
   if (outgoingFound) evidence.push("Indexed outgoing transfer found");
 
   return {
-    address,
-    index: item.index,
-    path: item.path,
+    key: network.key,
+    label: network.label,
     activityFound,
     evidence,
-    balanceEth: weiToEthString(balanceHex),
+    balanceNative: weiToNativeString(balanceHex),
     outgoingTransactionCount: nonce.toString(),
     hasContractCode,
     incomingFound,
     outgoingFound
+  };
+}
+
+async function inspectAddress(networks, item, ordinal) {
+  const perNetworkSettled = await Promise.allSettled(
+    networks.map((network) => inspectAddressOnNetwork(network, item.address, ordinal))
+  );
+
+  const networkResults = perNetworkSettled.map((entry, index) => {
+    const base = { key: networks[index].key, label: networks[index].label };
+    if (entry.status === "fulfilled") return entry.value;
+    return {
+      ...base,
+      activityFound: false,
+      evidence: [],
+      balanceNative: "0",
+      outgoingTransactionCount: "0",
+      hasContractCode: false,
+      incomingFound: false,
+      outgoingFound: false,
+      error: entry.reason?.message || "Unable to check this network."
+    };
+  });
+
+  const activeNetworks = networkResults.filter((result) => result.activityFound);
+  const evidence = activeNetworks.map(
+    (result) => `${result.label}: ${result.evidence.join(", ") || "activity found"}`
+  );
+
+  return {
+    address: item.address,
+    index: item.index,
+    path: item.path,
+    activityFound: activeNetworks.length > 0,
+    activeNetworks: activeNetworks.map((result) => result.label),
+    evidence,
+    networkResults
   };
 }
 
@@ -158,7 +228,9 @@ export default async function handler(request, response) {
 
   const apiKey = process.env.ALCHEMY_API_KEY;
   if (!apiKey) {
-    return send(response, 500, { error: "Server configuration is incomplete: ALCHEMY_API_KEY is missing." });
+    return send(response, 500, {
+      error: "Server configuration is incomplete: ALCHEMY_API_KEY is missing."
+    });
   }
 
   const expectedAccessToken = process.env.APP_ACCESS_TOKEN;
@@ -181,7 +253,9 @@ export default async function handler(request, response) {
   }
 
   if (!Array.isArray(body.addresses) || body.addresses.length < 1 || body.addresses.length > MAX_ADDRESSES) {
-    return send(response, 400, { error: `Submit between 1 and ${MAX_ADDRESSES} public addresses per request.` });
+    return send(response, 400, {
+      error: `Submit between 1 and ${MAX_ADDRESSES} public addresses per request.`
+    });
   }
 
   const seen = new Set();
@@ -190,26 +264,34 @@ export default async function handler(request, response) {
     const address = typeof raw?.address === "string" ? raw.address.trim() : "";
     const path = typeof raw?.path === "string" ? raw.path.trim() : "";
     const index = Number(raw?.index);
+
     if (!ADDRESS_RE.test(address)) {
-      return send(response, 400, { error: "One or more submitted public addresses are invalid." });
+      return send(response, 400, {
+        error: "One or more submitted public addresses are invalid."
+      });
     }
     if (!Number.isSafeInteger(index) || index < 0 || index > 0x7fffffff) {
-      return send(response, 400, { error: "One or more derivation indexes are invalid." });
+      return send(response, 400, {
+        error: "One or more derivation indexes are invalid."
+      });
     }
     if (!path || path.length > 96) {
-      return send(response, 400, { error: "One or more derivation paths are invalid." });
+      return send(response, 400, {
+        error: "One or more derivation paths are invalid."
+      });
     }
-    const key = address.toLowerCase();
+
+    const key = `${address.toLowerCase()}|${path}`;
     if (seen.has(key)) continue;
     seen.add(key);
     addresses.push({ address, path, index });
   }
 
-  const endpoint = `https://eth-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`;
+  const networks = supportedNetworks(apiKey);
 
   try {
     const settled = await Promise.allSettled(
-      addresses.map((item, ordinal) => inspectAddress(endpoint, item, ordinal))
+      addresses.map((item, ordinal) => inspectAddress(networks, item, ordinal + 1))
     );
 
     const results = settled.map((entry, index) => {
@@ -217,16 +299,18 @@ export default async function handler(request, response) {
       return {
         ...addresses[index],
         activityFound: false,
+        activeNetworks: [],
         evidence: [],
         error: entry.reason?.message || "Unable to check this address."
       };
     });
 
     return send(response, 200, {
-      network: "Ethereum Mainnet",
+      network: "Supported EVM networks",
+      supportedNetworks: networks.map(({ key, label }) => ({ key, label })),
       results,
       checkedAt: new Date().toISOString(),
-      disclaimer: "A zero result means no evidence was returned by these checks; it is not a mathematical proof that an address never appeared on-chain."
+      disclaimer: "This deployment checks Ethereum, Base, Arbitrum, Optimism, and Polygon. A zero result means these checks returned no evidence on those networks."
     });
   } catch (error) {
     const message = error?.name === "AbortError"
