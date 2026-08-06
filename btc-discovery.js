@@ -34,7 +34,9 @@
   const cacheStatus = document.querySelector('#btc-cache-status');
 
   const filterInputs = [startDate, endDate, minInactive, minBalance, maxBalance, target, candidateLimit];
-  const AUTO_BATCH_DELAY_MS = 900;
+  const AUTO_BATCH_DELAY_MS = 1400;
+  const AUTO_RETRY_BASE_DELAY_MS = 3000;
+  const MAX_AUTO_RETRIES_PER_BATCH = 3;
 
   let currentRows = [];
   let controller = null;
@@ -43,7 +45,7 @@
   let checkedTotal = 0;
   let totalBigQueryBytes = 0;
   let addressCacheHits = 0;
-  let providerErrors = 0;
+  let unresolvedProviderErrors = 0;
   let activePayload = null;
   let autoRunning = false;
   let autoPaused = false;
@@ -78,21 +80,16 @@
     const ratio = candidateCount > 0 ? checkedTotal / candidateCount : 0;
     progressBar.value = Math.max(0, Math.min(100, ratio * 100));
 
-    if (label) {
-      progressLabel.textContent = label;
-    } else if (autoRunning) {
-      progressLabel.textContent = 'Automatic scan in progress…';
-    } else if (autoPaused) {
-      progressLabel.textContent = 'Automatic scan paused';
-    } else if (targetReached()) {
-      progressLabel.textContent = 'Target reached';
-    } else if (candidateCount && checkedTotal >= candidateCount) {
-      progressLabel.textContent = 'Candidate scan complete';
-    }
+    if (label) progressLabel.textContent = label;
+    else if (autoRunning) progressLabel.textContent = 'Automatic scan in progress…';
+    else if (autoPaused) progressLabel.textContent = 'Automatic scan paused';
+    else if (targetReached()) progressLabel.textContent = 'Target reached';
+    else if (candidateCount && checkedTotal >= candidateCount) progressLabel.textContent = 'Candidate scan complete';
 
     const targetValue = Number(activePayload?.target || 0);
+    const retryText = unresolvedProviderErrors ? ` · ${unresolvedProviderErrors} checks waiting for retry` : '';
     progressDetail.textContent = candidateCount
-      ? `${new Intl.NumberFormat().format(checkedTotal)} of ${new Intl.NumberFormat().format(candidateCount)} candidates checked · ${currentRows.length} of ${targetValue} target matches`
+      ? `${new Intl.NumberFormat().format(checkedTotal)} of ${new Intl.NumberFormat().format(candidateCount)} candidates fully checked · ${currentRows.length} of ${targetValue} target matches${retryText}`
       : 'Preparing candidate discovery and cost estimate…';
   }
 
@@ -124,13 +121,9 @@
       continueButton.disabled = !manualHasMore || requestBusy;
     }
 
-    if (requestBusy && checkedTotal === 0) {
-      searchButton.textContent = 'Discovering candidates…';
-    } else if (requestBusy) {
-      searchButton.textContent = 'Search running…';
-    } else {
-      searchButton.textContent = autoScan.checked ? 'Start automatic search' : 'Start new search';
-    }
+    if (requestBusy && checkedTotal === 0) searchButton.textContent = 'Discovering candidates…';
+    else if (requestBusy) searchButton.textContent = 'Search running…';
+    else searchButton.textContent = autoScan.checked ? 'Start automatic search' : 'Start new search';
   }
 
   function safeNumber(input, min, max, label) {
@@ -146,7 +139,6 @@
     const unwrapped = typeof value === 'object' && value.value !== undefined ? value.value : value;
     const text = String(unwrapped).trim();
     if (!text) return null;
-
     let date;
     if (/^-?\d+(?:\.\d+)?$/.test(text)) {
       const numeric = Number(text);
@@ -161,11 +153,7 @@
   function formatDate(value) {
     const date = parseTimestamp(value);
     if (!date) return '—';
-    return new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit'
-    }).format(date);
+    return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: '2-digit' }).format(date);
   }
 
   function isoTimestamp(value) {
@@ -176,10 +164,7 @@
   function formatBtc(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return '0 BTC';
-    return `${new Intl.NumberFormat(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 8
-    }).format(numeric)} BTC`;
+    return `${new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 8 }).format(numeric)} BTC`;
   }
 
   function formatBytes(value) {
@@ -213,9 +198,7 @@
       if (sort.value === 'balance_desc') {
         return Number(right.balanceBtc) - Number(left.balanceBtc) || Number(right.inactiveDays) - Number(left.inactiveDays);
       }
-      if (sort.value === 'oldest_first') {
-        return String(left.firstSeen || '').localeCompare(String(right.firstSeen || ''));
-      }
+      if (sort.value === 'oldest_first') return String(left.firstSeen || '').localeCompare(String(right.firstSeen || ''));
       return Number(right.inactiveDays) - Number(left.inactiveDays) || Number(right.balanceBtc) - Number(left.balanceBtc);
     });
     return copy;
@@ -224,7 +207,6 @@
   function renderRows(rows) {
     resultsBody.replaceChildren();
     empty.hidden = rows.length > 0;
-
     for (const item of rows) {
       const row = document.createElement('tr');
       const addressCell = createCell(shortenAddress(item.address), 'mono');
@@ -235,7 +217,6 @@
       row.append(createCell(formatDate(item.lastActivity)));
       row.append(createCell(new Intl.NumberFormat().format(Number(item.inactiveDays || 0))));
       row.append(createCell(new Intl.NumberFormat().format(Number(item.activityRecords || 0))));
-
       const explorerCell = document.createElement('td');
       const link = document.createElement('a');
       link.href = `https://mempool.space/address/${encodeURIComponent(item.address)}`;
@@ -258,7 +239,7 @@
     checkedTotal = 0;
     totalBigQueryBytes = 0;
     addressCacheHits = 0;
-    providerErrors = 0;
+    unresolvedProviderErrors = 0;
     activePayload = null;
     autoRunning = false;
     autoPaused = false;
@@ -281,11 +262,9 @@
       throw new Error('Enter a valid start and end date.');
     }
     if (startDate.value > endDate.value) throw new Error('The start date must be on or before the end date.');
-
     const minBtc = safeNumber(minBalance, 0, 21_000_000, 'Minimum BTC');
     const maxBtc = safeNumber(maxBalance, 0, 21_000_000, 'Maximum BTC');
     if (minBtc > maxBtc) throw new Error('Minimum BTC cannot exceed maximum BTC.');
-
     return {
       startDate: startDate.value,
       endDate: endDate.value,
@@ -308,11 +287,11 @@
   function updateResults(data, { automatic = false } = {}) {
     mergeRows(Array.isArray(data.results) ? data.results : []);
     candidateCount = Number(data.candidateCount || candidateCount || 0);
-    checkedTotal = Number(data.nextOffset || checkedTotal || 0);
-    nextOffset = Number(data.nextOffset || 0);
+    checkedTotal = Number(data.nextOffset ?? checkedTotal ?? 0);
+    nextOffset = Number(data.nextOffset ?? nextOffset ?? 0);
     totalBigQueryBytes += Number(data.bigQueryBytesProcessed || 0);
     addressCacheHits += Number(data.addressCacheHits || 0);
-    providerErrors += Number(data.providerErrors || 0);
+    unresolvedProviderErrors = Number(data.providerErrors || 0);
 
     renderRows(currentRows);
     resultCount.textContent = String(currentRows.length);
@@ -326,29 +305,32 @@
     updateProgress();
 
     const reached = targetReached();
+    const retryRequired = Boolean(data.retryRequired) || unresolvedProviderErrors > 0;
     const hasMore = Boolean(data.hasMore) && !reached;
-    const errorNote = providerErrors ? ` ${providerErrors} public API check${providerErrors === 1 ? '' : 's'} failed and can be retried.` : '';
 
     if (reached) {
-      showMessage(`Target reached. Found ${currentRows.length} matching public addresses after checking ${checkedTotal} of ${candidateCount} candidates.${errorNote}`, 'success');
+      showMessage(`Target reached. Found ${currentRows.length} matching public addresses after fully checking ${checkedTotal} of ${candidateCount} candidates.`, 'success');
+    } else if (retryRequired && automatic) {
+      showMessage(`This batch has ${unresolvedProviderErrors} public API check${unresolvedProviderErrors === 1 ? '' : 's'} waiting for retry. Successful checks were cached; automatic mode will retry this same batch.`, 'success');
+    } else if (retryRequired) {
+      showMessage(`This batch has ${unresolvedProviderErrors} public API check${unresolvedProviderErrors === 1 ? '' : 's'} waiting for retry. Successful checks were cached. Use Continue search to retry the same batch.`, 'success');
     } else if (hasMore && automatic) {
-      showMessage(`Checked ${checkedTotal} of ${candidateCount} candidates and found ${currentRows.length} matches. Automatic scanning will continue.${errorNote}`, 'success');
+      showMessage(`Fully checked ${checkedTotal} of ${candidateCount} candidates and found ${currentRows.length} matches. Automatic scanning will continue.`, 'success');
     } else if (hasMore) {
-      showMessage(`Checked ${checkedTotal} of ${candidateCount} cached candidates and found ${currentRows.length} matches. Use Continue search for the next batch.${errorNote}`, 'success');
+      showMessage(`Fully checked ${checkedTotal} of ${candidateCount} cached candidates and found ${currentRows.length} matches. Use Continue search for the next batch.`, 'success');
     } else {
-      showMessage(`Search complete. Checked all ${candidateCount} candidates and found ${currentRows.length} matches.${errorNote}`, 'success');
+      showMessage(`Search complete. Fully checked all ${candidateCount} candidates and found ${currentRows.length} matches.`, 'success');
     }
 
     refreshControls();
-    return { reached, hasMore };
+    return { reached, hasMore, retryRequired };
   }
 
   async function requestBatch(payload, continuing, generation) {
     if (generation !== runGeneration) return null;
     hideMessage();
     progress.hidden = false;
-    updateProgress(continuing ? `Checking cached candidates ${payload.offset + 1} onward…` : 'Estimating and discovering historical candidates…');
-
+    updateProgress(continuing ? `Checking cached candidates from ${payload.offset + 1}…` : 'Estimating and discovering historical candidates…');
     controller = new AbortController();
     refreshControls();
     try {
@@ -380,16 +362,18 @@
     autoRunning = true;
     autoPaused = false;
     pauseRequested = false;
+    let retryRound = 0;
     refreshControls();
     updateProgress('Automatic scan in progress…');
 
     while (generation === runGeneration && hasMoreCandidates()) {
       if (pauseRequested) break;
-      await sleep(AUTO_BATCH_DELAY_MS);
+      const delay = retryRound > 0 ? AUTO_RETRY_BASE_DELAY_MS * retryRound : AUTO_BATCH_DELAY_MS;
+      await sleep(delay);
       if (generation !== runGeneration || pauseRequested) break;
 
-      const payload = { ...activePayload, offset: nextOffset };
-      const data = await requestBatch(payload, true, generation);
+      const offsetBefore = nextOffset;
+      const data = await requestBatch({ ...activePayload, offset: nextOffset }, true, generation);
       if (!data || generation !== runGeneration) {
         autoRunning = false;
         autoPaused = hasMoreCandidates();
@@ -400,15 +384,30 @@
 
       const state = updateResults(data, { automatic: true });
       if (state.reached || !state.hasMore) break;
+
+      if (state.retryRequired && nextOffset === offsetBefore) {
+        retryRound += 1;
+        if (retryRound >= MAX_AUTO_RETRIES_PER_BATCH) {
+          autoRunning = false;
+          autoPaused = true;
+          pauseRequested = false;
+          showMessage(`Automatic scan paused because ${unresolvedProviderErrors} public API check${unresolvedProviderErrors === 1 ? '' : 's'} in the current batch are still unavailable after ${MAX_AUTO_RETRIES_PER_BATCH} retry rounds. Wait a little, then press Resume automatic scan.`, 'success');
+          updateProgress('Automatic scan paused for provider recovery');
+          refreshControls();
+          return;
+        }
+        updateProgress(`Retrying current batch · attempt ${retryRound + 1} of ${MAX_AUTO_RETRIES_PER_BATCH}…`);
+      } else {
+        retryRound = 0;
+      }
     }
 
     if (generation !== runGeneration) return;
-
     if (pauseRequested && hasMoreCandidates()) {
       autoRunning = false;
       autoPaused = true;
       pauseRequested = false;
-      showMessage(`Automatic scan paused after checking ${checkedTotal} of ${candidateCount} candidates.`, 'success');
+      showMessage(`Automatic scan paused after fully checking ${checkedTotal} of ${candidateCount} candidates.`, 'success');
       updateProgress('Automatic scan paused');
     } else {
       autoRunning = false;
@@ -431,9 +430,7 @@
 
     const automatic = autoScan.checked;
     const state = updateResults(data, { automatic });
-    if (automatic && state.hasMore && !state.reached) {
-      await automaticLoop(generation);
-    }
+    if (automatic && state.hasMore && !state.reached) await automaticLoop(generation);
   }
 
   form.addEventListener('submit', async (event) => {
@@ -459,11 +456,7 @@
       pauseButton.disabled = true;
       return;
     }
-
-    if (autoPaused && hasMoreCandidates()) {
-      const generation = runGeneration;
-      await automaticLoop(generation);
-    }
+    if (autoPaused && hasMoreCandidates()) await automaticLoop(runGeneration);
   });
 
   clearButton.addEventListener('click', resetState);
