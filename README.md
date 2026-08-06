@@ -1,9 +1,21 @@
-# Ethereum Recovery & Address Auditor
+# EVM Recovery & Address Auditor
 
 A Vercel app with two tools:
 
-1. **Recovery auditor** — derives Ethereum addresses from a BIP-39 phrase the user already owns and checks those public addresses for Mainnet activity evidence.
-2. **Public address checker** — performs a detailed check for one public Ethereum address.
+1. **Recovery auditor** — derives EVM addresses from a BIP-39 phrase the user already owns and checks those public addresses across supported networks.
+2. **Public address checker** — performs a detailed multi-network check for one public EVM address.
+
+## Supported networks
+
+The current deployment checks:
+
+- Ethereum Mainnet
+- Base Mainnet
+- Arbitrum One
+- OP Mainnet
+- Polygon Mainnet
+
+The code is structured around a network configuration array so additional providers and networks can be added later.
 
 ## Recovery-auditor privacy model
 
@@ -22,22 +34,23 @@ The recovery auditor accepts only an existing phrase supplied by the user. It do
 - Ledger Live: `m/44'/60'/account'/0/0`
 - Legacy Ledger: `m/44'/60'/0'/index`
 
-The app can audit up to 1,000 derived addresses per run. Checks are sent in small protected batches and can be stopped by the user. The optional gap-stop setting ends the run after 50 consecutive addresses with no returned evidence.
+The app can audit up to 1,000 derived addresses per run. Public addresses are checked in small protected batches and the audit can be stopped by the user. The optional gap-stop setting ends the run after 50 consecutive addresses with no returned evidence.
 
-## What the blockchain checks include
+## What each network check includes
 
-- Current ETH balance (`eth_getBalance`)
+- Current native balance (`eth_getBalance`)
 - Outgoing transaction count / nonce (`eth_getTransactionCount`)
 - Deployed contract code (`eth_getCode`)
-- Indexed incoming and outgoing external, internal, ERC-20, ERC-721 and ERC-1155 transfers
+- Indexed incoming and outgoing external, ERC-20, ERC-721 and ERC-1155 transfers
+- Internal transfers where the provider supports them
 
-A zero result means those checks returned no evidence; it is not a mathematical proof that an address has never appeared in every possible on-chain context.
+A zero result means those checks returned no evidence. It is not a mathematical proof that an address has never appeared on any EVM network.
 
 ## Required Vercel environment variables
 
 Open `Project → Settings → Environment Variables` and add:
 
-- `ALCHEMY_API_KEY` — an Alchemy Ethereum Mainnet API key
+- `ALCHEMY_API_KEY` — an Alchemy API key with Ethereum, Base, Arbitrum, Optimism and Polygon enabled
 - `APP_ACCESS_TOKEN` — a long private passcode; required for recovery-auditor batch checks
 
 Apply both variables to Production. Redeploy after saving them.
