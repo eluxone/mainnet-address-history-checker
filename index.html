@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="description" content="EVM recovery auditor and public address checker.">
+  <meta name="description" content="EVM recovery auditor, seed-word recovery assistant and public address checker.">
   <title>EVM Recovery & Address Auditor</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -15,11 +15,12 @@
       <div>
         <p class="eyebrow">Configured EVM networks</p>
         <h1>Recovery & Address Auditor</h1>
-        <p class="subtitle">Recover addresses from a BIP-39 phrase you own, or inspect one public address across Ethereum Mainnet, Base Mainnet, and OP Mainnet. Recovery phrases are processed only inside your browser.</p>
+        <p class="subtitle">Recover one missing or incorrect seed word, locate addresses from a BIP-39 phrase you own, or inspect one public address across Ethereum Mainnet, Base Mainnet, and OP Mainnet.</p>
       </div>
     </header>
 
     <nav class="tabs" aria-label="Auditor tools">
+      <a class="tab-button" href="/recover">Seed-word recovery</a>
       <button class="tab-button active" type="button" data-tab="recovery">Recovery auditor</button>
       <button class="tab-button" type="button" data-tab="address">Public address checker</button>
     </nav>
@@ -248,7 +249,7 @@
     </section>
 
     <footer>
-      <p>No random recovery phrases are generated. The recovery auditor is intended only for locating addresses derived from a phrase you already own on Ethereum Mainnet, Base Mainnet, and OP Mainnet.</p>
+      <p>No random recovery phrases are generated. The recovery tools are intended only for wallets that belong to the user or that the user is authorized to recover.</p>
     </footer>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng==" crossorigin="anonymous" defer></script>
