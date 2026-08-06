@@ -1,18 +1,25 @@
-MAINNET ADDRESS HISTORY CHECKER — VERCEL SETUP
+ETHEREUM RECOVERY & ADDRESS AUDITOR — VERCEL SETUP
 
-1. Create an Ethereum Mainnet app in Alchemy and copy the API key.
+1. Connect this GitHub repository to Vercel.
 
-2. Connect this GitHub repository to Vercel.
+2. In the Vercel project, open Settings > Environment Variables.
 
-3. In your Vercel project, open Settings > Environment Variables.
+3. Confirm this variable already exists:
+   ALCHEMY_API_KEY = your Alchemy Ethereum Mainnet API key
 
-4. Add:
-   ALCHEMY_API_KEY = your Alchemy API key
-
-5. Recommended: also add:
+4. Add a second required variable for the recovery auditor:
    APP_ACCESS_TOKEN = a long private passcode of your choice
 
-6. Redeploy the project after saving the variables.
+   Do not publish this passcode in GitHub or share it publicly.
 
-7. Open the Vercel URL. Paste only a PUBLIC Ethereum address beginning 0x.
-   Never enter a seed phrase or private key.
+5. Apply both variables to Production and save them.
+
+6. Open Deployments and redeploy the latest deployment.
+
+7. Open the live Vercel URL. The first tab is Recovery auditor.
+
+8. The recovery auditor accepts an EXISTING BIP-39 phrase you own. It derives public addresses in browser memory and submits only public addresses for checking.
+
+9. It supports Standard / MetaMask, Ledger Live and Legacy Ledger paths, with up to 1,000 addresses per run.
+
+10. Never use the app to enter a phrase that does not belong to you. For a high-value wallet, use a reviewed local copy instead of a hosted webpage.
