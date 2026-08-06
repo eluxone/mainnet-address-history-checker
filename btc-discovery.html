@@ -89,10 +89,16 @@
           </div>
         </div>
 
-        <p class="field-help">BigQuery now discovers candidate addresses only once and refuses queries above the configured byte limit. Supabase caches the candidate list and recent address checks. Each request verifies the next small batch through a public Esplora-compatible API.</p>
+        <label class="check-row ownership-row" for="btc-auto-scan">
+          <input id="btc-auto-scan" type="checkbox" checked>
+          <span><strong>Automatic batch scan</strong><br>After candidate discovery, automatically check cached batches of 50 until the target is reached or all candidates have been checked. You can pause and resume between batches.</span>
+        </label>
+
+        <p class="field-help">BigQuery discovers the candidate list once with the configured byte safety limit. Supabase caches that list and recent address checks. Automatic mode then verifies cached candidates through a public Esplora-compatible API without repeating candidate discovery.</p>
 
         <div class="actions">
-          <button id="btc-search-button" class="primary" type="submit">Start new search</button>
+          <button id="btc-search-button" class="primary" type="submit">Start automatic search</button>
+          <button id="btc-pause-button" class="secondary" type="button" hidden disabled>Pause automatic scan</button>
           <button id="btc-continue-button" class="primary" type="button" hidden disabled>Continue search</button>
           <button id="btc-clear-button" class="secondary" type="button">Clear results</button>
         </div>
@@ -107,10 +113,10 @@
           <p class="step">SEARCH STATUS</p>
           <h2 id="btc-progress-label">Preparing hybrid public-data search…</h2>
         </div>
-        <span class="status-pill">Hybrid cache</span>
+        <span class="status-pill">Automatic batches</span>
       </div>
-      <progress max="100" value="45"></progress>
-      <p class="field-help">The first request may run a capped BigQuery candidate query. Continued batches reuse the cached candidate list and recent public-address results.</p>
+      <progress id="btc-progress-bar" max="100" value="0"></progress>
+      <p id="btc-progress-detail" class="field-help">Preparing candidate discovery and cost estimate…</p>
     </section>
 
     <section id="btc-results" class="panel history-panel" hidden>
