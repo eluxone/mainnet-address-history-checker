@@ -91,18 +91,36 @@
 
         <label class="check-row ownership-row" for="btc-auto-scan">
           <input id="btc-auto-scan" type="checkbox" checked>
-          <span><strong>Automatic batch scan</strong><br>After candidate discovery, automatically check cached batches of 50 until the target is reached or all candidates have been checked. You can pause and resume between batches.</span>
+          <span><strong>Automatic batch scan</strong><br>After candidate discovery, automatically check cached batches until the target is reached or all candidates have been fully checked. You can pause and resume between batches.</span>
         </label>
 
-        <p class="field-help">BigQuery discovers the candidate list once with the configured byte safety limit. Supabase caches that list and recent address checks. Automatic mode then verifies cached candidates through a public Esplora-compatible API without repeating candidate discovery.</p>
+        <p class="field-help">Step 1 previews the BigQuery cost without running candidate discovery. Step 2 starts only after the preview confirms the query is within the safety limit or the candidate list is already cached.</p>
 
         <div class="actions">
-          <button id="btc-search-button" class="primary" type="submit">Start automatic search</button>
+          <button id="btc-preview-button" class="secondary" type="button">Check search cost</button>
+          <button id="btc-search-button" class="primary" type="submit" disabled>Start automatic search</button>
           <button id="btc-pause-button" class="secondary" type="button" hidden disabled>Pause automatic scan</button>
           <button id="btc-continue-button" class="primary" type="button" hidden disabled>Continue search</button>
           <button id="btc-clear-button" class="secondary" type="button">Clear results</button>
         </div>
       </form>
+
+      <div id="btc-cost-preview" style="margin-top:22px" hidden>
+        <div class="status-line" style="margin-bottom:14px">
+          <div>
+            <p class="step">BIGQUERY COST PREVIEW</p>
+            <h2>Search safety check</h2>
+          </div>
+          <span id="btc-preview-status" class="status-pill">Not checked</span>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card"><p>Estimated BigQuery scan</p><strong id="btc-preview-estimate">—</strong></article>
+          <article class="metric-card"><p>Safety limit</p><strong id="btc-preview-limit">—</strong></article>
+          <article class="metric-card"><p>Percent of limit</p><strong id="btc-preview-percent">—</strong></article>
+          <article class="metric-card"><p>Candidate cache</p><strong id="btc-preview-cache">—</strong></article>
+        </div>
+        <p id="btc-preview-note" class="field-help">Run the preview before starting a new search.</p>
+      </div>
 
       <div id="btc-message" class="message" role="alert" aria-live="polite" hidden></div>
     </section>
@@ -152,7 +170,7 @@
         </table>
       </div>
       <p id="btc-empty" class="empty-history" hidden>No public addresses matched the checked candidates.</p>
-      <p class="disclaimer">Candidate discovery comes from Google’s public Bitcoin dataset. Current confirmed balances and latest confirmed activity are verified through an Esplora-compatible public API and cached in Supabase. No ownership inference is made.</p>
+      <p class="disclaimer">Candidate discovery comes from Google’s public Bitcoin dataset. Current confirmed balances and latest confirmed activity are verified through public Esplora-compatible APIs and cached in Supabase. No ownership inference is made.</p>
     </section>
 
     <footer>
@@ -160,5 +178,6 @@
     </footer>
   </main>
   <script src="/btc-discovery.js" defer></script>
+  <script src="/btc-cost-preview.js" defer></script>
 </body>
 </html>
