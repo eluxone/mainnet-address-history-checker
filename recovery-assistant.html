@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="description" content="Browser-only Ethereum wallet recovery assistant for one missing or incorrect BIP-39 word.">
+  <meta name="description" content="Browser-only Ethereum wallet recovery assistant with a device benchmark for one to three missing BIP-39 words.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'">
   <title>Crypto Wallet Recovery Assistant</title>
   <link rel="stylesheet" href="/styles.css">
@@ -17,7 +17,7 @@
       <div>
         <p class="eyebrow">OWNER-AUTHORIZED RECOVERY</p>
         <h1>Crypto Wallet Recovery Assistant</h1>
-        <p class="subtitle">Recover one missing or incorrect word from a 12-word MetaMask/Ethereum BIP-39 phrase. Candidate generation and address derivation happen inside this browser tab.</p>
+        <p class="subtitle">Recover one missing or incorrect word from a 12-word MetaMask/Ethereum BIP-39 phrase, and benchmark how long larger recovery searches would take on this device.</p>
       </div>
     </header>
 
@@ -30,6 +30,68 @@
       <p class="step">IMPORTANT SECURITY NOTICE</p>
       <h2>Use only with a wallet you own</h2>
       <p>The recovery phrase is processed locally and is not submitted to this website's APIs. Do not use screenshots, cloud notes, browser extensions you do not trust, or a shared computer. A website password limits access to this tool but does not replace device security.</p>
+    </section>
+
+    <section class="panel estimator-panel" aria-labelledby="estimator-title">
+      <div class="panel-heading">
+        <div>
+          <p class="step">RECOVERY TIME ESTIMATOR</p>
+          <h2 id="estimator-title">Benchmark one, two, or three missing words</h2>
+        </div>
+        <span class="network-badge">Synthetic test only</span>
+      </div>
+      <p class="disclaimer">This benchmark uses a fixed public dummy phrase. It never reads the recovery-word boxes, wallet address, or passphrase below. The three-word result is an estimate only and does not start a real three-word search.</p>
+
+      <form id="recovery-estimator-form" novalidate>
+        <div class="form-grid three-columns">
+          <div>
+            <label for="estimator-profile">Derivation profile</label>
+            <select id="estimator-profile">
+              <option value="standard">Standard / MetaMask</option>
+              <option value="ledger-live">Ledger Live</option>
+              <option value="ledger-legacy">Legacy Ledger</option>
+            </select>
+          </div>
+          <div>
+            <label for="estimator-account-count">Accounts checked per candidate</label>
+            <input id="estimator-account-count" type="number" min="1" max="50" value="10" inputmode="numeric">
+          </div>
+          <div>
+            <label for="estimator-position-mode">Missing positions</label>
+            <select id="estimator-position-mode">
+              <option value="known">Exact positions are known</option>
+              <option value="unknown">Positions are unknown</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="run-recovery-estimate" class="secondary" type="submit">Benchmark this device</button>
+        </div>
+      </form>
+
+      <div id="estimator-message" class="message" role="status" aria-live="polite" hidden></div>
+
+      <div id="estimator-metrics" class="metric-grid estimator-metrics" hidden>
+        <article class="metric-card"><p>Measured candidate rate</p><strong id="estimator-rate">—</strong></article>
+        <article class="metric-card"><p>Derivation profile</p><strong id="estimator-profile-result">—</strong></article>
+        <article class="metric-card"><p>Accounts per candidate</p><strong id="estimator-accounts-result">—</strong></article>
+        <article class="metric-card"><p>Position assumption</p><strong id="estimator-positions-result">—</strong></article>
+      </div>
+
+      <div id="estimator-results" class="table-wrap estimator-results" hidden>
+        <table class="estimator-table">
+          <thead>
+            <tr>
+              <th>Missing words</th>
+              <th>Checksum-valid candidates</th>
+              <th>Average time</th>
+              <th>Worst-case time</th>
+            </tr>
+          </thead>
+          <tbody id="estimator-results-body"></tbody>
+        </table>
+      </div>
+      <p id="estimator-note" class="field-help" hidden>Estimates assume a 12-word English BIP-39 phrase and continuously available browser processing. Real speed can change with battery mode, heat, background tabs and browser throttling.</p>
     </section>
 
     <section class="panel checker-panel" aria-labelledby="assistant-title">
@@ -123,7 +185,7 @@
     </section>
 
     <footer>
-      <p>This tool does not generate random phrases or search unknown wallets. It tests only the one missing or incorrect word position supplied by the authorized user.</p>
+      <p>The hosted recovery tool tests only one missing or incorrect word. The estimator can benchmark larger search spaces without processing a real wallet phrase.</p>
     </footer>
   </main>
 
