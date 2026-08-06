@@ -4,11 +4,31 @@
   const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
   const TOTAL_WORDS = 12;
   const MAX_CANDIDATES = 2048;
+  const BENCHMARK_PHRASE = 'test test test test test test test test test test test junk';
   const PROFILE_LABELS = {
     standard: 'Standard / MetaMask',
     'ledger-live': 'Ledger Live',
     'ledger-legacy': 'Legacy Ledger'
   };
+  const POSITION_MULTIPLIERS = {
+    known: { 1: 1n, 2: 1n, 3: 1n },
+    unknown: { 1: 12n, 2: 66n, 3: 220n }
+  };
+
+  const estimatorForm = document.querySelector('#recovery-estimator-form');
+  const estimatorProfileInput = document.querySelector('#estimator-profile');
+  const estimatorAccountCountInput = document.querySelector('#estimator-account-count');
+  const estimatorPositionModeInput = document.querySelector('#estimator-position-mode');
+  const estimatorButton = document.querySelector('#run-recovery-estimate');
+  const estimatorMessage = document.querySelector('#estimator-message');
+  const estimatorMetrics = document.querySelector('#estimator-metrics');
+  const estimatorRate = document.querySelector('#estimator-rate');
+  const estimatorProfileResult = document.querySelector('#estimator-profile-result');
+  const estimatorAccountsResult = document.querySelector('#estimator-accounts-result');
+  const estimatorPositionsResult = document.querySelector('#estimator-positions-result');
+  const estimatorResults = document.querySelector('#estimator-results');
+  const estimatorResultsBody = document.querySelector('#estimator-results-body');
+  const estimatorNote = document.querySelector('#estimator-note');
 
   const form = document.querySelector('#seed-recovery-form');
   const modeInput = document.querySelector('#recovery-mode');
@@ -40,6 +60,7 @@
   const wordInputs = [];
   let stopRequested = false;
   let running = false;
+  let estimatorRunning = false;
 
   function normalizeWord(value) {
     return value.normalize('NFKD').trim().toLowerCase();
@@ -72,9 +93,21 @@
     message.hidden = true;
   }
 
+  function showEstimatorMessage(text, kind = '') {
+    estimatorMessage.textContent = text;
+    estimatorMessage.className = `message${kind ? ` ${kind}` : ''}`;
+    estimatorMessage.hidden = false;
+  }
+
+  function hideEstimatorMessage() {
+    estimatorMessage.textContent = '';
+    estimatorMessage.className = 'message';
+    estimatorMessage.hidden = true;
+  }
+
   function setBusy(value) {
     running = value;
-    startButton.disabled = value;
+    startButton.disabled = value || estimatorRunning;
     stopButton.disabled = !value;
     clearButton.disabled = value;
     modeInput.disabled = value;
@@ -85,8 +118,19 @@
     countInput.disabled = value;
     passphraseInput.disabled = value;
     ownershipInput.disabled = value;
+    estimatorButton.disabled = value || estimatorRunning;
     wordInputs.forEach((input) => { input.disabled = value; });
     startButton.textContent = value ? 'Recovering locally…' : 'Start local recovery';
+  }
+
+  function setEstimatorBusy(value) {
+    estimatorRunning = value;
+    estimatorButton.disabled = value || running;
+    estimatorProfileInput.disabled = value;
+    estimatorAccountCountInput.disabled = value;
+    estimatorPositionModeInput.disabled = value;
+    startButton.disabled = value || running;
+    estimatorButton.textContent = value ? 'Benchmarking this device…' : 'Benchmark this device';
   }
 
   function updateProgress(done, total, text) {
@@ -208,9 +252,144 @@
     }
   }
 
+  function benchmarkCandidate(profile, accountCount, sampleIndex) {
+    let root = null;
+    try {
+      root = window.ethers.HDNodeWallet.fromPhrase(
+        BENCHMARK_PHRASE,
+        `device-benchmark-${sampleIndex}`,
+        'm'
+      );
+      for (let index = 0; index < accountCount; index += 1) {
+        root.derivePath(derivationPath(profile, index)).address;
+      }
+    } finally {
+      root = null;
+    }
+  }
+
+  function checksumValidCandidates(missingWords, positionMode) {
+    const rawCombinations = 2048n ** BigInt(missingWords);
+    const checksumValid = rawCombinations / 16n;
+    return checksumValid * POSITION_MULTIPLIERS[positionMode][missingWords];
+  }
+
+  function formatCandidateCount(value) {
+    return value.toLocaleString('en-GB');
+  }
+
+  function formatRate(value) {
+    return `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: value < 10 ? 2 : 1 }).format(value)} / sec`;
+  }
+
+  function formatDuration(totalSeconds) {
+    if (!Number.isFinite(totalSeconds)) return 'Unavailable';
+    if (totalSeconds < 1) return '< 1 second';
+    if (totalSeconds < 60) return `${Math.ceil(totalSeconds)} seconds`;
+
+    const minutes = totalSeconds / 60;
+    if (minutes < 60) return `${Math.floor(minutes)}m ${Math.round(totalSeconds % 60)}s`;
+
+    const hours = minutes / 60;
+    if (hours < 24) return `${Math.floor(hours)}h ${Math.round(minutes % 60)}m`;
+
+    const days = hours / 24;
+    if (days < 365.25) return `${Math.floor(days)}d ${Math.round(hours % 24)}h`;
+
+    const years = days / 365.25;
+    if (years < 100) return `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 }).format(years)} years`;
+    return `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(years)} years`;
+  }
+
+  function createEstimatorCell(text, className = '') {
+    const cell = document.createElement('td');
+    cell.textContent = text;
+    if (className) cell.className = className;
+    return cell;
+  }
+
+  function renderEstimator(rate, profile, accountCount, positionMode) {
+    estimatorRate.textContent = formatRate(rate);
+    estimatorProfileResult.textContent = PROFILE_LABELS[profile];
+    estimatorAccountsResult.textContent = String(accountCount);
+    estimatorPositionsResult.textContent = positionMode === 'known' ? 'Exact positions known' : 'Positions unknown';
+    estimatorResultsBody.replaceChildren();
+
+    for (let missingWords = 1; missingWords <= 3; missingWords += 1) {
+      const candidates = checksumValidCandidates(missingWords, positionMode);
+      const candidateNumber = Number(candidates);
+      const averageSeconds = (candidateNumber / 2) / rate;
+      const worstSeconds = candidateNumber / rate;
+      const row = document.createElement('tr');
+      row.append(
+        createEstimatorCell(String(missingWords)),
+        createEstimatorCell(formatCandidateCount(candidates), 'mono'),
+        createEstimatorCell(formatDuration(averageSeconds)),
+        createEstimatorCell(formatDuration(worstSeconds))
+      );
+      estimatorResultsBody.append(row);
+    }
+
+    estimatorMetrics.hidden = false;
+    estimatorResults.hidden = false;
+    estimatorNote.hidden = false;
+  }
+
+  estimatorForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (running || estimatorRunning) return;
+    hideEstimatorMessage();
+
+    try {
+      if (!window.ethers?.HDNodeWallet) {
+        throw new Error('The local wallet library did not load. Refresh the page and try again.');
+      }
+
+      const profile = estimatorProfileInput.value;
+      const accountCount = safeInteger(estimatorAccountCountInput, 1, 50, 'Accounts checked per candidate');
+      const positionMode = estimatorPositionModeInput.value;
+      const samples = accountCount <= 5 ? 32 : accountCount <= 15 ? 20 : accountCount <= 30 ? 12 : 8;
+      const warmupSamples = 2;
+
+      setEstimatorBusy(true);
+      estimatorMetrics.hidden = true;
+      estimatorResults.hidden = true;
+      estimatorNote.hidden = true;
+      showEstimatorMessage('Warming up the local derivation benchmark…');
+
+      for (let index = 0; index < warmupSamples; index += 1) {
+        benchmarkCandidate(profile, accountCount, -index - 1);
+      }
+      await new Promise(requestAnimationFrame);
+
+      let activeMilliseconds = 0;
+      for (let index = 0; index < samples; index += 1) {
+        const startedAt = performance.now();
+        benchmarkCandidate(profile, accountCount, index);
+        activeMilliseconds += performance.now() - startedAt;
+
+        if (index % 4 === 3) {
+          showEstimatorMessage(`Benchmarking sample ${index + 1} of ${samples}…`);
+          await new Promise(requestAnimationFrame);
+        }
+      }
+
+      const rate = samples / Math.max(activeMilliseconds / 1000, 0.001);
+      renderEstimator(rate, profile, accountCount, positionMode);
+      showEstimatorMessage(
+        'Benchmark complete. Times are calculated from checksum-valid candidates and the measured local address-derivation rate.',
+        'success'
+      );
+    } catch (error) {
+      showEstimatorMessage(error?.message || 'Unable to benchmark this device.');
+    } finally {
+      setEstimatorBusy(false);
+    }
+  });
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (running) return;
+    if (running || estimatorRunning) return;
     hideMessage();
     clearResult();
 
