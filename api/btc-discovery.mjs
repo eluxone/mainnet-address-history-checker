@@ -354,9 +354,11 @@ export default async function handler(request, response) {
 
   const serviceAccount = parseServiceAccount();
   if (!serviceAccount) {
-    return send(response, 503, {
-      error: 'BTC Discovery Lab requires a Google Cloud service account. Configure GOOGLE_SERVICE_ACCOUNT_JSON in Vercel, then redeploy.'
-    });
+    const packed = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    const error = packed
+      ? 'GOOGLE_SERVICE_ACCOUNT_JSON is present but invalid. Paste the complete service-account JSON object—or its Base64 encoding—and confirm it includes project_id, client_email and private_key. Then redeploy.'
+      : 'GOOGLE_SERVICE_ACCOUNT_JSON is missing from this Vercel deployment. Add it to the same Vercel project and environment serving this domain, then redeploy.';
+    return send(response, 503, { error });
   }
 
   let body;
