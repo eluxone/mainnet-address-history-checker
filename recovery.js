@@ -76,7 +76,7 @@
     countInput.disabled = value;
     stopGapInput.disabled = value;
     ownershipInput.disabled = value;
-    auditButton.textContent = value ? 'Auditing addresses…' : 'Start recovery audit';
+    auditButton.textContent = value ? 'Auditing EVM networks…' : 'Start recovery audit';
   }
 
   function updateProgress(scanned, total, found, errors, path, status) {
@@ -107,8 +107,7 @@
       String(item.index),
       item.path,
       item.address,
-      `${item.balanceEth ?? '0'} ETH`,
-      item.outgoingTransactionCount ?? '0'
+      (item.activeNetworks || []).join(', ') || '—'
     ];
 
     values.forEach((value, index) => {
@@ -218,7 +217,7 @@
       setAuditBusy(true);
 
       root = window.ethers.HDNodeWallet.fromPhrase(phrase, passphraseInput.value, 'm');
-      const chunkSize = 10;
+      const chunkSize = 4;
 
       for (let offset = 0; offset < count && !stopRequested; offset += chunkSize) {
         const chunk = [];
@@ -234,7 +233,14 @@
         }
 
         if (stopRequested || chunk.length === 0) break;
-        updateProgress(scanned, count, foundResults.length, errors, chunk.at(-1).path, `Checking ${PROFILE_LABELS[profile]} addresses on Mainnet…`);
+        updateProgress(
+          scanned,
+          count,
+          foundResults.length,
+          errors,
+          chunk.at(-1).path,
+          `Checking ${PROFILE_LABELS[profile]} addresses across supported EVM networks…`
+        );
 
         const checked = await checkAddressBatch(chunk, accessToken);
         for (const item of checked) {
@@ -248,7 +254,14 @@
           } else {
             consecutiveEmpty += 1;
           }
-          updateProgress(scanned, count, foundResults.length, errors, item.path, `Checked ${scanned} address${scanned === 1 ? '' : 'es'}…`);
+          updateProgress(
+            scanned,
+            count,
+            foundResults.length,
+            errors,
+            item.path,
+            `Checked ${scanned} address${scanned === 1 ? '' : 'es'}…`
+          );
         }
 
         if (stopGapInput.checked && consecutiveEmpty >= 50) {
@@ -259,9 +272,16 @@
       }
 
       const summary = stopRequested
-        ? `Audit stopped after ${scanned} addresses. ${foundResults.length} address${foundResults.length === 1 ? '' : 'es'} returned activity evidence.`
+        ? `Audit stopped after ${scanned} addresses. ${foundResults.length} address${foundResults.length === 1 ? '' : 'es'} returned activity evidence on the supported EVM networks.`
         : `Audit finished. Checked ${scanned} address${scanned === 1 ? '' : 'es'} and found ${foundResults.length} with returned activity evidence.`;
-      updateProgress(scanned, count, foundResults.length, errors, currentPathMetric.textContent, stopRequested ? 'Stopped by user' : 'Audit complete');
+      updateProgress(
+        scanned,
+        count,
+        foundResults.length,
+        errors,
+        currentPathMetric.textContent,
+        stopRequested ? 'Stopped by user' : 'Audit complete'
+      );
       showRecoveryMessage(summary, 'success');
       if (scanned > 0) clearSensitiveFields();
     } catch (error) {
@@ -317,14 +337,13 @@
     if (!foundResults.length) return;
     const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
     const rows = [
-      ['index', 'derivation_path', 'public_address', 'eth_balance', 'outgoing_nonce', 'evidence'],
+      ['index', 'derivation_path', 'public_address', 'active_networks', 'evidence'],
       ...foundResults.map((item) => [
         item.index,
         item.path,
         item.address,
-        item.balanceEth,
-        item.outgoingTransactionCount,
-        (item.evidence || []).join('; ')
+        (item.activeNetworks || []).join('; '),
+        (item.evidence || []).join(' | ')
       ])
     ];
     const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
@@ -332,7 +351,7 @@
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ethereum-recovery-public-results-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `evm-recovery-public-results-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.append(link);
     link.click();
     link.remove();
