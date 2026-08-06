@@ -11,6 +11,18 @@
     message.hidden = false;
   }
 
+  function safeDestination(value) {
+    if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+    try {
+      const destination = new URL(value, window.location.origin);
+      return destination.origin === window.location.origin
+        ? `${destination.pathname}${destination.search}${destination.hash}`
+        : '/';
+    } catch {
+      return '/';
+    }
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     message.hidden = true;
@@ -27,8 +39,7 @@
       if (!response.ok) throw new Error(data.error || 'Incorrect password.');
 
       const params = new URLSearchParams(window.location.search);
-      const next = params.get('next');
-      window.location.replace(next && next.startsWith('/') ? next : '/');
+      window.location.replace(safeDestination(params.get('next')));
     } catch (error) {
       passwordInput.value = '';
       passwordInput.focus();
