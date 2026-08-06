@@ -10,6 +10,18 @@ function json(response, status = 200, headers = {}) {
   });
 }
 
+function normalizeSecret(value) {
+  let normalized = String(value ?? '').trim();
+  if (normalized.length >= 2) {
+    const first = normalized[0];
+    const last = normalized[normalized.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      normalized = normalized.slice(1, -1).trim();
+    }
+  }
+  return normalized;
+}
+
 function safeEqual(left, right) {
   const leftBuffer = Buffer.from(String(left));
   const rightBuffer = Buffer.from(String(right));
@@ -19,15 +31,15 @@ function safeEqual(left, right) {
 export default async function handler(request) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
 
-  const configuredPassword = process.env.SITE_PASSWORD;
+  const configuredPassword = normalizeSecret(process.env.SITE_PASSWORD);
   if (!configuredPassword) {
     return json({ error: 'SITE_PASSWORD is not configured in Vercel.' }, 503);
   }
 
   const body = await request.json().catch(() => ({}));
-  const suppliedPassword = typeof body.password === 'string' ? body.password : '';
+  const suppliedPassword = normalizeSecret(typeof body.password === 'string' ? body.password : '');
   if (!safeEqual(suppliedPassword, configuredPassword)) {
-    return json({ error: 'Incorrect website password.' }, 401);
+    return json({ error: 'Incorrect password. Check capitalization and confirm SITE_PASSWORD was saved for the Production environment before the latest deployment.' }, 401, { 'Cache-Control': 'no-store' });
   }
 
   const expiresAt = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
