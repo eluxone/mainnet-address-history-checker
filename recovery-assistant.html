@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="description" content="Browser-only Ethereum wallet recovery assistant for one missing or incorrect BIP-39 word.">
+  <title>Crypto Wallet Recovery Assistant</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="brand-mark" aria-hidden="true">◇</div>
+      <div>
+        <p class="eyebrow">OWNER-AUTHORIZED RECOVERY</p>
+        <h1>Crypto Wallet Recovery Assistant</h1>
+        <p class="subtitle">Recover one missing or incorrect word from a 12-word MetaMask/Ethereum BIP-39 phrase. Candidate generation and address derivation happen inside this browser tab.</p>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Recovery navigation">
+      <a class="tab-button" href="/">Address auditor</a>
+      <a class="tab-button active" href="/recovery-assistant.html" aria-current="page">Seed recovery</a>
+    </nav>
+
+    <section class="panel warning-panel">
+      <p class="step">IMPORTANT SECURITY NOTICE</p>
+      <h2>Use only with a wallet you own</h2>
+      <p>The recovery phrase is processed locally and is not submitted to this website's APIs. Do not use screenshots, cloud notes, browser extensions you do not trust, or a shared computer. A website password limits access to this tool but does not replace device security.</p>
+    </section>
+
+    <section class="panel checker-panel" aria-labelledby="assistant-title">
+      <div class="panel-heading">
+        <div>
+          <p class="step">12-WORD ETHEREUM RECOVERY</p>
+          <h2 id="assistant-title">Find one missing or incorrect word</h2>
+        </div>
+        <span class="network-badge">MetaMask · Ethereum BIP-39</span>
+      </div>
+
+      <form id="seed-recovery-form" novalidate>
+        <label for="recovery-mode">Recovery type</label>
+        <select id="recovery-mode">
+          <option value="missing">One word is missing</option>
+          <option value="incorrect">One word is incorrect</option>
+        </select>
+        <p id="mode-help" class="field-help">Leave exactly one numbered word box empty where the missing word belongs.</p>
+
+        <div id="word-grid" class="word-grid" aria-label="Twelve recovery word positions"></div>
+
+        <div id="incorrect-position-wrap" hidden>
+          <label for="incorrect-position">Incorrect word position</label>
+          <select id="incorrect-position"></select>
+        </div>
+
+        <label for="known-recovery-address">Known public wallet address</label>
+        <input id="known-recovery-address" type="text" maxlength="42" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x... address derived from this phrase" required>
+        <p class="field-help">Required. The assistant returns a phrase only when it derives this exact public address.</p>
+
+        <div class="form-grid three-columns">
+          <div>
+            <label for="recovery-profile">Derivation profile</label>
+            <select id="recovery-profile">
+              <option value="standard">Standard / MetaMask</option>
+              <option value="ledger-live">Ledger Live</option>
+              <option value="ledger-legacy">Legacy Ledger</option>
+            </select>
+          </div>
+          <div>
+            <label for="account-start">Starting account index</label>
+            <input id="account-start" type="number" min="0" max="200" value="0" inputmode="numeric">
+          </div>
+          <div>
+            <label for="account-count">Accounts to check</label>
+            <input id="account-count" type="number" min="1" max="50" value="10" inputmode="numeric">
+          </div>
+        </div>
+
+        <label for="bip39-passphrase">Optional BIP-39 passphrase</label>
+        <input id="bip39-passphrase" type="password" autocomplete="off" spellcheck="false" placeholder="Leave blank unless the original wallet used one">
+
+        <label class="check-row ownership-row" for="recovery-ownership">
+          <input id="recovery-ownership" type="checkbox" required>
+          <span>I confirm that this wallet belongs to me or I am authorized to recover it.</span>
+        </label>
+
+        <div class="actions">
+          <button id="start-seed-recovery" class="primary" type="submit">Start local recovery</button>
+          <button id="stop-seed-recovery" class="secondary" type="button" disabled>Stop</button>
+          <button id="clear-seed-recovery" class="secondary" type="button">Clear sensitive data</button>
+        </div>
+      </form>
+
+      <div id="seed-recovery-message" class="message" role="alert" aria-live="polite" hidden></div>
+    </section>
+
+    <section id="seed-progress-panel" class="panel progress-panel" hidden>
+      <div class="status-line">
+        <div>
+          <p class="step">LOCAL SEARCH PROGRESS</p>
+          <h2 id="seed-status">Preparing…</h2>
+        </div>
+        <span id="seed-progress-label" class="status-pill">0 / 0</span>
+      </div>
+      <progress id="seed-progress" max="100" value="0"></progress>
+      <p class="field-help">No candidate phrase or private key is sent to an API.</p>
+    </section>
+
+    <section id="seed-result-panel" class="panel history-panel" hidden>
+      <p class="step">MATCH FOUND</p>
+      <h2>Recovered phrase</h2>
+      <p class="disclaimer">Confirm the public address before using this result. Because the phrase has been entered into a browser, move valuable assets to a newly generated wallet afterward.</p>
+      <textarea id="seed-result" class="secret-input secret-hidden" rows="3" readonly autocomplete="off" spellcheck="false"></textarea>
+      <div class="actions">
+        <button id="reveal-seed-result" class="secondary" type="button">Reveal result</button>
+        <button id="copy-seed-result" class="secondary" type="button">Copy result</button>
+        <button id="erase-seed-result" class="secondary" type="button">Erase result</button>
+      </div>
+      <p id="matched-path" class="mono"></p>
+    </section>
+
+    <footer>
+      <p>This tool does not generate random phrases or search unknown wallets. It tests only the one missing or incorrect word position supplied by the authorized user.</p>
+    </footer>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng==" crossorigin="anonymous" defer></script>
+  <script src="/recovery-assistant.js" defer></script>
+</body>
+</html>
