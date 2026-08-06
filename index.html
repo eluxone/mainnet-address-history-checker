@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="description" content="A private Ethereum Mainnet public-address history checker.">
-  <title>Mainnet Address History Checker</title>
+  <meta name="description" content="Ethereum address history checker and owner-authorized recovery auditor.">
+  <title>Ethereum Recovery & Address Auditor</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -14,106 +14,219 @@
       <div class="brand-mark" aria-hidden="true">Ξ</div>
       <div>
         <p class="eyebrow">Ethereum Mainnet</p>
-        <h1>Address History Checker</h1>
-        <p class="subtitle">Check a public Ethereum address for current state and indexed transfer activity. Never enter a seed phrase or private key.</p>
+        <h1>Recovery & Address Auditor</h1>
+        <p class="subtitle">Recover addresses from a BIP-39 phrase you own, or inspect one public Ethereum address. Recovery phrases are processed only inside your browser.</p>
       </div>
     </header>
 
-    <section class="panel checker-panel" aria-labelledby="checker-title">
-      <div class="panel-heading">
-        <div>
-          <p class="step">PUBLIC ADDRESS ONLY</p>
-          <h2 id="checker-title">Check an address</h2>
+    <nav class="tabs" aria-label="Auditor tools">
+      <button class="tab-button active" type="button" data-tab="recovery">Recovery auditor</button>
+      <button class="tab-button" type="button" data-tab="address">Public address checker</button>
+    </nav>
+
+    <section id="tab-recovery" class="tab-panel" data-panel="recovery">
+      <section class="panel warning-panel">
+        <p class="step">OWNER-AUTHORIZED RECOVERY ONLY</p>
+        <h2>Use only with a recovery phrase that belongs to you</h2>
+        <p>This hosted page never sends the phrase, passphrase, or private keys to Vercel. It derives public addresses in browser memory and sends only those public addresses for Mainnet checks. For a high-value wallet, run a reviewed local copy instead of entering the phrase into any hosted website.</p>
+      </section>
+
+      <section class="panel checker-panel" aria-labelledby="recovery-title">
+        <div class="panel-heading">
+          <div>
+            <p class="step">BIP-39 RECOVERY AUDIT</p>
+            <h2 id="recovery-title">Find addresses from your existing phrase</h2>
+          </div>
+          <span class="network-badge">Mainnet</span>
         </div>
-        <span class="network-badge">Mainnet</span>
-      </div>
 
-      <form id="address-form" novalidate>
-        <label for="address">Ethereum address</label>
-        <div class="input-row">
-          <input id="address" name="address" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="42" placeholder="0x0000000000000000000000000000000000000000" required>
-          <button id="paste-button" class="secondary" type="button">Paste</button>
-        </div>
-        <p class="field-help">A valid address contains 0x followed by 40 hexadecimal characters.</p>
+        <form id="recovery-form" novalidate>
+          <label for="recovery-phrase">Recovery phrase</label>
+          <textarea id="recovery-phrase" class="secret-input secret-hidden" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter your existing 12, 15, 18, 21, or 24-word BIP-39 English phrase"></textarea>
+          <div class="inline-actions compact-actions">
+            <button id="toggle-phrase" class="secondary small-button" type="button">Reveal phrase</button>
+            <button id="paste-phrase" class="secondary small-button" type="button">Paste phrase</button>
+          </div>
+          <p class="field-help">The complete phrase is validated locally, including its BIP-39 checksum.</p>
 
-        <div id="access-token-wrap" class="token-wrap">
-          <label for="access-token">App passcode <span>(only when configured in Vercel)</span></label>
-          <input id="access-token" name="access-token" type="password" autocomplete="current-password" placeholder="Optional deployment passcode">
-        </div>
+          <label for="recovery-passphrase">Optional BIP-39 passphrase</label>
+          <input id="recovery-passphrase" type="password" autocomplete="off" spellcheck="false" placeholder="Leave blank unless the original wallet used one">
 
-        <div class="actions">
-          <button id="check-button" class="primary" type="submit">Check Mainnet history</button>
-          <button id="clear-button" class="secondary" type="button">Clear</button>
-        </div>
-      </form>
+          <div class="form-grid three-columns">
+            <div>
+              <label for="derivation-profile">Derivation profile</label>
+              <select id="derivation-profile">
+                <option value="standard">Standard / MetaMask — m/44'/60'/0'/0/index</option>
+                <option value="ledger-live">Ledger Live — m/44'/60'/account'/0/0</option>
+                <option value="ledger-legacy">Legacy Ledger — m/44'/60'/0'/index</option>
+              </select>
+            </div>
+            <div>
+              <label for="recovery-start">Starting index</label>
+              <input id="recovery-start" type="number" min="0" max="2147483647" value="0" inputmode="numeric">
+            </div>
+            <div>
+              <label for="recovery-count">Maximum addresses</label>
+              <input id="recovery-count" type="number" min="1" max="1000" value="20" inputmode="numeric">
+            </div>
+          </div>
 
-      <div id="message" class="message" role="alert" aria-live="polite" hidden></div>
-    </section>
+          <label for="recovery-access-token">Private app passcode</label>
+          <input id="recovery-access-token" type="password" autocomplete="current-password" placeholder="The APP_ACCESS_TOKEN configured in Vercel">
+          <p class="field-help">Recovery auditing is disabled unless this passcode is configured in Vercel.</p>
 
-    <section id="results" class="results" aria-live="polite" hidden>
-      <article class="panel status-panel">
+          <label class="check-row" for="stop-gap">
+            <input id="stop-gap" type="checkbox" checked>
+            <span>Stop after 50 consecutive addresses with no returned activity evidence</span>
+          </label>
+
+          <label class="check-row ownership-row" for="ownership-confirmation">
+            <input id="ownership-confirmation" type="checkbox" required>
+            <span>I confirm that this recovery phrase belongs to me or I am authorized to recover it.</span>
+          </label>
+
+          <div class="actions">
+            <button id="audit-button" class="primary" type="submit">Start recovery audit</button>
+            <button id="stop-audit-button" class="secondary" type="button" disabled>Stop</button>
+            <button id="clear-recovery-button" class="secondary" type="button">Clear sensitive data</button>
+          </div>
+        </form>
+
+        <div id="recovery-message" class="message" role="alert" aria-live="polite" hidden></div>
+      </section>
+
+      <section id="recovery-progress-panel" class="panel progress-panel" hidden>
         <div class="status-line">
           <div>
-            <p class="step">RESULT</p>
-            <h2 id="status-label">—</h2>
+            <p class="step">AUDIT PROGRESS</p>
+            <h2 id="recovery-status">Preparing…</h2>
           </div>
-          <span id="status-pill" class="status-pill">—</span>
+          <span id="recovery-progress-label" class="status-pill">0 / 0</span>
         </div>
-        <p id="result-address" class="mono address-output"></p>
-        <ul id="evidence-list" class="evidence-list"></ul>
-        <p id="disclaimer" class="disclaimer"></p>
-      </article>
+        <progress id="recovery-progress" max="100" value="0"></progress>
+        <div class="metric-grid recovery-metrics">
+          <article class="metric-card"><p>Addresses checked</p><strong id="recovery-scanned">0</strong></article>
+          <article class="metric-card"><p>Activity found</p><strong id="recovery-found-count">0</strong></article>
+          <article class="metric-card"><p>Check errors</p><strong id="recovery-error-count">0</strong></article>
+          <article class="metric-card"><p>Current path</p><strong id="recovery-current-path" class="small-metric">—</strong></article>
+        </div>
+      </section>
 
-      <div class="metric-grid">
-        <article class="metric-card">
-          <p>ETH balance</p>
-          <strong id="balance">—</strong>
-        </article>
-        <article class="metric-card">
-          <p>Outgoing nonce</p>
-          <strong id="nonce">—</strong>
-        </article>
-        <article class="metric-card">
-          <p>Address type</p>
-          <strong id="address-type">—</strong>
-        </article>
-        <article class="metric-card">
-          <p>History returned</p>
-          <strong id="history-count">—</strong>
-        </article>
-      </div>
-
-      <article class="panel history-panel">
+      <section id="recovery-results" class="panel history-panel" hidden>
         <div class="panel-heading history-heading">
           <div>
-            <p class="step">LATEST INDEXED TRANSFERS</p>
-            <h2>Address history</h2>
+            <p class="step">RECOVERED PUBLIC ADDRESSES</p>
+            <h2>Addresses with returned activity evidence</h2>
           </div>
-          <p id="partial-note" class="partial-note"></p>
+          <button id="export-recovery" class="secondary" type="button" disabled>Export public results CSV</button>
         </div>
+        <p class="disclaimer">The phrase is not included in this table or exported file. Results contain public addresses, indexes, paths, balances and evidence only.</p>
         <div class="table-wrap">
-          <table>
+          <table class="recovery-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Direction</th>
-                <th>Type</th>
-                <th>Asset / value</th>
-                <th>Counterparty</th>
-                <th>Transaction</th>
+                <th>Index</th>
+                <th>Derivation path</th>
+                <th>Public address</th>
+                <th>ETH balance</th>
+                <th>Nonce</th>
+                <th>Evidence</th>
+                <th>Action</th>
               </tr>
             </thead>
-            <tbody id="history-body"></tbody>
+            <tbody id="recovery-results-body"></tbody>
           </table>
         </div>
-        <p id="empty-history" class="empty-history" hidden>No transfers were returned by the indexed history query.</p>
-      </article>
+        <p id="recovery-empty" class="empty-history">No checked address has returned activity evidence yet.</p>
+      </section>
+    </section>
+
+    <section id="tab-address" class="tab-panel" data-panel="address" hidden>
+      <section class="panel checker-panel" aria-labelledby="checker-title">
+        <div class="panel-heading">
+          <div>
+            <p class="step">PUBLIC ADDRESS ONLY</p>
+            <h2 id="checker-title">Check one address in detail</h2>
+          </div>
+          <span class="network-badge">Mainnet</span>
+        </div>
+
+        <form id="address-form" novalidate>
+          <label for="address">Ethereum address</label>
+          <div class="input-row">
+            <input id="address" name="address" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="42" placeholder="0x0000000000000000000000000000000000000000" required>
+            <button id="paste-button" class="secondary" type="button">Paste</button>
+          </div>
+          <p class="field-help">A valid address contains 0x followed by 40 hexadecimal characters.</p>
+
+          <div id="access-token-wrap" class="token-wrap">
+            <label for="access-token">App passcode <span>(only when configured in Vercel)</span></label>
+            <input id="access-token" name="access-token" type="password" autocomplete="current-password" placeholder="Optional deployment passcode">
+          </div>
+
+          <div class="actions">
+            <button id="check-button" class="primary" type="submit">Check Mainnet history</button>
+            <button id="clear-button" class="secondary" type="button">Clear</button>
+          </div>
+        </form>
+
+        <div id="message" class="message" role="alert" aria-live="polite" hidden></div>
+      </section>
+
+      <section id="results" class="results" aria-live="polite" hidden>
+        <article class="panel status-panel">
+          <div class="status-line">
+            <div>
+              <p class="step">RESULT</p>
+              <h2 id="status-label">—</h2>
+            </div>
+            <span id="status-pill" class="status-pill">—</span>
+          </div>
+          <p id="result-address" class="mono address-output"></p>
+          <ul id="evidence-list" class="evidence-list"></ul>
+          <p id="disclaimer" class="disclaimer"></p>
+        </article>
+
+        <div class="metric-grid">
+          <article class="metric-card"><p>ETH balance</p><strong id="balance">—</strong></article>
+          <article class="metric-card"><p>Outgoing nonce</p><strong id="nonce">—</strong></article>
+          <article class="metric-card"><p>Address type</p><strong id="address-type">—</strong></article>
+          <article class="metric-card"><p>History returned</p><strong id="history-count">—</strong></article>
+        </div>
+
+        <article class="panel history-panel">
+          <div class="panel-heading history-heading">
+            <div>
+              <p class="step">LATEST INDEXED TRANSFERS</p>
+              <h2>Address history</h2>
+            </div>
+            <p id="partial-note" class="partial-note"></p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Direction</th>
+                  <th>Type</th>
+                  <th>Asset / value</th>
+                  <th>Counterparty</th>
+                  <th>Transaction</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+          <p id="empty-history" class="empty-history" hidden>No transfers were returned by the indexed history query.</p>
+        </article>
+      </section>
     </section>
 
     <footer>
-      <p>This tool reads public blockchain data. It never asks for or processes recovery phrases, private keys, or wallet passwords.</p>
+      <p>No random recovery phrases are generated. The recovery auditor is intended only for locating addresses derived from a phrase you already own.</p>
     </footer>
   </main>
   <script src="/app.js" defer></script>
+  <script src="/recovery.js" defer></script>
 </body>
 </html>
