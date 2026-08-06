@@ -135,11 +135,29 @@ function parseServiceAccount() {
   return { projectId, clientEmail, privateKey: normalizePrivateKey(privateKey) };
 }
 
+function normalizeSupabaseRestUrl(value) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'https:') return null;
+    let path = parsed.pathname.replace(/\/+$/, '');
+    if (!path || path === '/') path = '/rest/v1';
+    else if (!path.endsWith('/rest/v1')) path = `${path}/rest/v1`;
+    parsed.pathname = path;
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
 function parseSupabase() {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/, '');
+  const restUrl = normalizeSupabaseRestUrl(process.env.SUPABASE_URL);
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) return null;
-  return { url, key };
+  if (!restUrl || !key) return null;
+  return { restUrl, key };
 }
 
 function base64Url(value) {
@@ -164,7 +182,7 @@ async function getGoogleAccessToken(serviceAccount) {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      grant_type: 'urn:ietf:params:oauth-type:jwt-bearer'.replace('oauth-type', 'oauth-grant-type'),
       assertion
     })
   }, 20_000);
@@ -346,7 +364,7 @@ function searchKey(filters) {
 }
 
 async function supabaseRequest(config, path, options = {}) {
-  const response = await fetchWithTimeout(`${config.url}/rest/v1/${path}`, {
+  const response = await fetchWithTimeout(`${config.restUrl}/${path}`, {
     ...options,
     headers: {
       apikey: config.key,
@@ -356,9 +374,16 @@ async function supabaseRequest(config, path, options = {}) {
     }
   }, 20_000);
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new HttpError(502, `Supabase cache returned a non-JSON response (HTTP ${response.status}). Check SUPABASE_URL.`);
+    }
+  }
   if (!response.ok) {
-    throw new HttpError(502, data?.message || data?.hint || `Supabase cache request failed (${response.status}).`);
+    throw new HttpError(502, data?.message || data?.hint || data?.code || `Supabase cache request failed (${response.status}).`);
   }
   return data;
 }
@@ -555,7 +580,7 @@ export default async function handler(request, response) {
   const supabase = parseSupabase();
   if (!supabase) {
     return send(response, 503, {
-      error: 'Hybrid BTC caching requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in this Vercel project.'
+      error: 'Hybrid BTC caching requires a valid HTTPS SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in this Vercel project.'
     });
   }
 
