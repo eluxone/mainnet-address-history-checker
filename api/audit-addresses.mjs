@@ -5,36 +5,37 @@ const MAX_ADDRESSES = 4;
 const DEFAULT_CATEGORIES = ["external", "erc20", "erc721", "erc1155"];
 
 function supportedNetworks(apiKey) {
+  const key = encodeURIComponent(apiKey);
   return [
     {
       key: "ethereum",
       label: "Ethereum",
       categories: [...DEFAULT_CATEGORIES, "internal"],
-      endpoint: `https://eth-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+      endpoint: `https://eth-mainnet.g.alchemy.com/v2/${key}`
     },
     {
       key: "base",
       label: "Base",
       categories: DEFAULT_CATEGORIES,
-      endpoint: `https://base-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+      endpoint: `https://base-mainnet.g.alchemy.com/v2/${key}`
     },
     {
       key: "arbitrum",
       label: "Arbitrum",
       categories: DEFAULT_CATEGORIES,
-      endpoint: `https://arb-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+      endpoint: `https://arb-mainnet.g.alchemy.com/v2/${key}`
     },
     {
       key: "optimism",
       label: "Optimism",
       categories: DEFAULT_CATEGORIES,
-      endpoint: `https://opt-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+      endpoint: `https://opt-mainnet.g.alchemy.com/v2/${key}`
     },
     {
       key: "polygon",
       label: "Polygon",
       categories: [...DEFAULT_CATEGORIES, "internal"],
-      endpoint: `https://polygon-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
+      endpoint: `https://polygon-mainnet.g.alchemy.com/v2/${key}`
     }
   ];
 }
@@ -184,11 +185,11 @@ async function inspectAddressOnNetwork(network, address, ordinal) {
 }
 
 async function inspectAddress(networks, item, ordinal) {
-  const perNetworkSettled = await Promise.allSettled(
+  const settled = await Promise.allSettled(
     networks.map((network) => inspectAddressOnNetwork(network, item.address, ordinal))
   );
 
-  const networkResults = perNetworkSettled.map((entry, index) => {
+  const networkResults = settled.map((entry, index) => {
     const base = { key: networks[index].key, label: networks[index].label };
     if (entry.status === "fulfilled") return entry.value;
     return {
@@ -205,19 +206,36 @@ async function inspectAddress(networks, item, ordinal) {
   });
 
   const activeNetworks = networkResults.filter((result) => result.activityFound);
+  const failedNetworks = networkResults.filter((result) => result.error);
+  const successfulNetworkCount = networkResults.length - failedNetworks.length;
   const evidence = activeNetworks.map(
     (result) => `${result.label}: ${result.evidence.join(", ") || "activity found"}`
   );
 
-  return {
+  const result = {
     address: item.address,
     index: item.index,
     path: item.path,
     activityFound: activeNetworks.length > 0,
     activeNetworks: activeNetworks.map((result) => result.label),
     evidence,
-    networkResults
+    networkResults,
+    networkErrorCount: failedNetworks.length,
+    successfulNetworkCount,
+    failedNetworks: failedNetworks.map((result) => ({
+      key: result.key,
+      label: result.label,
+      error: result.error
+    }))
   };
+
+  if (successfulNetworkCount === 0) {
+    result.error = `All network checks failed: ${failedNetworks
+      .map((network) => `${network.label} (${network.error})`)
+      .join("; ")}`;
+  }
+
+  return result;
 }
 
 export default async function handler(request, response) {
@@ -281,9 +299,9 @@ export default async function handler(request, response) {
       });
     }
 
-    const key = `${address.toLowerCase()}|${path}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const dedupeKey = `${address.toLowerCase()}|${path}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
     addresses.push({ address, path, index });
   }
 
@@ -301,6 +319,8 @@ export default async function handler(request, response) {
         activityFound: false,
         activeNetworks: [],
         evidence: [],
+        networkErrorCount: networks.length,
+        successfulNetworkCount: 0,
         error: entry.reason?.message || "Unable to check this address."
       };
     });
@@ -310,7 +330,7 @@ export default async function handler(request, response) {
       supportedNetworks: networks.map(({ key, label }) => ({ key, label })),
       results,
       checkedAt: new Date().toISOString(),
-      disclaimer: "This deployment checks Ethereum, Base, Arbitrum, Optimism, and Polygon. A zero result means these checks returned no evidence on those networks."
+      disclaimer: "This deployment checks Ethereum, Base, Arbitrum, Optimism, and Polygon. A zero result is reported only when at least one network check succeeded."
     });
   } catch (error) {
     const message = error?.name === "AbortError"
