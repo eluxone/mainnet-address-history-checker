@@ -13,12 +13,16 @@
   const candidateLimit = document.querySelector('#btc-candidate-limit');
   const accessToken = document.querySelector('#btc-access-token');
   const sort = document.querySelector('#btc-sort');
+  const autoScan = document.querySelector('#btc-auto-scan');
   const searchButton = document.querySelector('#btc-search-button');
   const continueButton = document.querySelector('#btc-continue-button');
+  const pauseButton = document.querySelector('#btc-pause-button');
   const clearButton = document.querySelector('#btc-clear-button');
   const message = document.querySelector('#btc-message');
   const progress = document.querySelector('#btc-progress');
+  const progressBar = document.querySelector('#btc-progress-bar');
   const progressLabel = document.querySelector('#btc-progress-label');
+  const progressDetail = document.querySelector('#btc-progress-detail');
   const resultsPanel = document.querySelector('#btc-results');
   const resultsTitle = document.querySelector('#btc-results-title');
   const resultsBody = document.querySelector('#btc-results-body');
@@ -29,6 +33,9 @@
   const bytesProcessed = document.querySelector('#btc-bytes-processed');
   const cacheStatus = document.querySelector('#btc-cache-status');
 
+  const filterInputs = [startDate, endDate, minInactive, minBalance, maxBalance, target, candidateLimit];
+  const AUTO_BATCH_DELAY_MS = 900;
+
   let currentRows = [];
   let controller = null;
   let nextOffset = 0;
@@ -38,6 +45,10 @@
   let addressCacheHits = 0;
   let providerErrors = 0;
   let activePayload = null;
+  let autoRunning = false;
+  let autoPaused = false;
+  let pauseRequested = false;
+  let runGeneration = 0;
 
   function showMessage(text, kind = '') {
     message.textContent = text;
@@ -51,16 +62,75 @@
     message.hidden = true;
   }
 
-  function setBusy(value, continuing = false) {
-    searchButton.disabled = value;
-    continueButton.disabled = value;
-    clearButton.disabled = value;
-    searchButton.textContent = value && !continuing ? 'Discovering candidates…' : 'Start new search';
-    continueButton.textContent = value && continuing ? 'Checking next batch…' : 'Continue search';
-    progress.hidden = !value;
-    progressLabel.textContent = continuing
-      ? `Checking cached candidates ${nextOffset + 1} onward…`
-      : 'Estimating and discovering historical candidates…';
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function targetReached() {
+    return Boolean(activePayload) && currentRows.length >= Number(activePayload.target || 0);
+  }
+
+  function hasMoreCandidates() {
+    return Boolean(activePayload) && nextOffset < candidateCount && !targetReached();
+  }
+
+  function updateProgress(label = '') {
+    const ratio = candidateCount > 0 ? checkedTotal / candidateCount : 0;
+    progressBar.value = Math.max(0, Math.min(100, ratio * 100));
+
+    if (label) {
+      progressLabel.textContent = label;
+    } else if (autoRunning) {
+      progressLabel.textContent = 'Automatic scan in progress…';
+    } else if (autoPaused) {
+      progressLabel.textContent = 'Automatic scan paused';
+    } else if (targetReached()) {
+      progressLabel.textContent = 'Target reached';
+    } else if (candidateCount && checkedTotal >= candidateCount) {
+      progressLabel.textContent = 'Candidate scan complete';
+    }
+
+    const targetValue = Number(activePayload?.target || 0);
+    progressDetail.textContent = candidateCount
+      ? `${new Intl.NumberFormat().format(checkedTotal)} of ${new Intl.NumberFormat().format(candidateCount)} candidates checked · ${currentRows.length} of ${targetValue} target matches`
+      : 'Preparing candidate discovery and cost estimate…';
+  }
+
+  function refreshControls() {
+    const requestBusy = Boolean(controller);
+    const running = autoRunning || requestBusy;
+
+    searchButton.disabled = running;
+    clearButton.disabled = requestBusy;
+    autoScan.disabled = running;
+
+    if (autoRunning) {
+      pauseButton.hidden = false;
+      pauseButton.disabled = false;
+      pauseButton.textContent = pauseRequested ? 'Pausing after this batch…' : 'Pause automatic scan';
+      continueButton.hidden = true;
+      continueButton.disabled = true;
+    } else if (autoPaused && hasMoreCandidates()) {
+      pauseButton.hidden = false;
+      pauseButton.disabled = false;
+      pauseButton.textContent = 'Resume automatic scan';
+      continueButton.hidden = true;
+      continueButton.disabled = true;
+    } else {
+      pauseButton.hidden = true;
+      pauseButton.disabled = true;
+      const manualHasMore = hasMoreCandidates() && !autoScan.checked;
+      continueButton.hidden = !manualHasMore;
+      continueButton.disabled = !manualHasMore || requestBusy;
+    }
+
+    if (requestBusy && checkedTotal === 0) {
+      searchButton.textContent = 'Discovering candidates…';
+    } else if (requestBusy) {
+      searchButton.textContent = 'Search running…';
+    } else {
+      searchButton.textContent = autoScan.checked ? 'Start automatic search' : 'Start new search';
+    }
   }
 
   function safeNumber(input, min, max, label) {
@@ -179,6 +249,7 @@
   }
 
   function resetState() {
+    runGeneration += 1;
     controller?.abort();
     controller = null;
     currentRows = [];
@@ -189,17 +260,20 @@
     addressCacheHits = 0;
     providerErrors = 0;
     activePayload = null;
+    autoRunning = false;
+    autoPaused = false;
+    pauseRequested = false;
     resultsBody.replaceChildren();
     resultsPanel.hidden = true;
     progress.hidden = true;
-    continueButton.hidden = true;
-    continueButton.disabled = true;
+    progressBar.value = 0;
     exportButton.disabled = true;
     resultCount.textContent = '0';
     candidatesCount.textContent = '0 / 0';
     bytesProcessed.textContent = '—';
     cacheStatus.textContent = '—';
     hideMessage();
+    refreshControls();
   }
 
   function buildPayload(offset = 0) {
@@ -231,7 +305,7 @@
     currentRows = sortRows([...byAddress.values()]).slice(0, Number(activePayload?.target || 100));
   }
 
-  function updateResults(data) {
+  function updateResults(data, { automatic = false } = {}) {
     mergeRows(Array.isArray(data.results) ? data.results : []);
     candidateCount = Number(data.candidateCount || candidateCount || 0);
     checkedTotal = Number(data.nextOffset || checkedTotal || 0);
@@ -248,35 +322,35 @@
     resultsTitle.textContent = `${currentRows.length} public address${currentRows.length === 1 ? '' : 'es'} matched`;
     resultsPanel.hidden = false;
     exportButton.disabled = currentRows.length === 0;
+    progress.hidden = false;
+    updateProgress();
 
-    const targetReached = currentRows.length >= Number(activePayload.target);
-    const hasMore = Boolean(data.hasMore) && !targetReached;
-    continueButton.hidden = !hasMore;
-    continueButton.disabled = !hasMore;
-
+    const reached = targetReached();
+    const hasMore = Boolean(data.hasMore) && !reached;
     const errorNote = providerErrors ? ` ${providerErrors} public API check${providerErrors === 1 ? '' : 's'} failed and can be retried.` : '';
-    if (targetReached) {
+
+    if (reached) {
       showMessage(`Target reached. Found ${currentRows.length} matching public addresses after checking ${checkedTotal} of ${candidateCount} candidates.${errorNote}`, 'success');
+    } else if (hasMore && automatic) {
+      showMessage(`Checked ${checkedTotal} of ${candidateCount} candidates and found ${currentRows.length} matches. Automatic scanning will continue.${errorNote}`, 'success');
     } else if (hasMore) {
       showMessage(`Checked ${checkedTotal} of ${candidateCount} cached candidates and found ${currentRows.length} matches. Use Continue search for the next batch.${errorNote}`, 'success');
     } else {
       showMessage(`Search complete. Checked all ${candidateCount} candidates and found ${currentRows.length} matches.${errorNote}`, 'success');
     }
-    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    refreshControls();
+    return { reached, hasMore };
   }
 
-  async function runBatch(offset, continuing) {
+  async function requestBatch(payload, continuing, generation) {
+    if (generation !== runGeneration) return null;
     hideMessage();
-    const payload = continuing && activePayload
-      ? { ...activePayload, offset }
-      : buildPayload(offset);
-    if (!continuing) {
-      resetState();
-      activePayload = { ...payload, offset: 0 };
-    }
+    progress.hidden = false;
+    updateProgress(continuing ? `Checking cached candidates ${payload.offset + 1} onward…` : 'Estimating and discovering historical candidates…');
 
-    setBusy(true, continuing);
     controller = new AbortController();
+    refreshControls();
     try {
       const headers = { 'Content-Type': 'application/json' };
       if (accessToken.value) headers['X-App-Access-Token'] = accessToken.value;
@@ -288,39 +362,134 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `BTC discovery request failed (${response.status}).`);
-      updateResults(data);
+      return data;
     } catch (error) {
-      if (error?.name !== 'AbortError') showMessage(error?.message || 'Unable to search public Bitcoin data.');
+      if (error?.name !== 'AbortError' && generation === runGeneration) {
+        showMessage(error?.message || 'Unable to search public Bitcoin data.');
+      }
+      return null;
     } finally {
       controller = null;
-      setBusy(false, continuing);
+      refreshControls();
+    }
+  }
+
+  async function automaticLoop(generation) {
+    if (generation !== runGeneration || !activePayload || !hasMoreCandidates()) return;
+
+    autoRunning = true;
+    autoPaused = false;
+    pauseRequested = false;
+    refreshControls();
+    updateProgress('Automatic scan in progress…');
+
+    while (generation === runGeneration && hasMoreCandidates()) {
+      if (pauseRequested) break;
+      await sleep(AUTO_BATCH_DELAY_MS);
+      if (generation !== runGeneration || pauseRequested) break;
+
+      const payload = { ...activePayload, offset: nextOffset };
+      const data = await requestBatch(payload, true, generation);
+      if (!data || generation !== runGeneration) {
+        autoRunning = false;
+        autoPaused = hasMoreCandidates();
+        refreshControls();
+        updateProgress(autoPaused ? 'Automatic scan paused after an error' : 'Automatic scan stopped');
+        return;
+      }
+
+      const state = updateResults(data, { automatic: true });
+      if (state.reached || !state.hasMore) break;
+    }
+
+    if (generation !== runGeneration) return;
+
+    if (pauseRequested && hasMoreCandidates()) {
+      autoRunning = false;
+      autoPaused = true;
+      pauseRequested = false;
+      showMessage(`Automatic scan paused after checking ${checkedTotal} of ${candidateCount} candidates.`, 'success');
+      updateProgress('Automatic scan paused');
+    } else {
+      autoRunning = false;
+      autoPaused = false;
+      pauseRequested = false;
+      updateProgress(targetReached() ? 'Target reached' : 'Candidate scan complete');
+    }
+    refreshControls();
+  }
+
+  async function startSearch() {
+    const initialPayload = buildPayload(0);
+    resetState();
+    const generation = runGeneration;
+    activePayload = { ...initialPayload, offset: 0 };
+    refreshControls();
+
+    const data = await requestBatch(initialPayload, false, generation);
+    if (!data || generation !== runGeneration) return;
+
+    const automatic = autoScan.checked;
+    const state = updateResults(data, { automatic });
+    if (automatic && state.hasMore && !state.reached) {
+      await automaticLoop(generation);
     }
   }
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     try {
-      await runBatch(0, false);
+      await startSearch();
     } catch (error) {
       showMessage(error?.message || 'Unable to start the search.');
     }
   });
 
   continueButton.addEventListener('click', async () => {
-    if (!activePayload || nextOffset >= candidateCount) return;
-    await runBatch(nextOffset, true);
+    if (!activePayload || nextOffset >= candidateCount || autoRunning) return;
+    const generation = runGeneration;
+    const data = await requestBatch({ ...activePayload, offset: nextOffset }, true, generation);
+    if (data && generation === runGeneration) updateResults(data, { automatic: false });
+  });
+
+  pauseButton.addEventListener('click', async () => {
+    if (autoRunning) {
+      pauseRequested = true;
+      pauseButton.textContent = 'Pausing after this batch…';
+      pauseButton.disabled = true;
+      return;
+    }
+
+    if (autoPaused && hasMoreCandidates()) {
+      const generation = runGeneration;
+      await automaticLoop(generation);
+    }
   });
 
   clearButton.addEventListener('click', resetState);
+
   sort.addEventListener('change', () => {
     currentRows = sortRows(currentRows);
     renderRows(currentRows);
   });
 
-  for (const input of [startDate, endDate, minInactive, minBalance, maxBalance, target, candidateLimit]) {
+  autoScan.addEventListener('change', () => {
+    if (!activePayload) {
+      refreshControls();
+      return;
+    }
+    if (!autoScan.checked && autoRunning) pauseRequested = true;
+    refreshControls();
+  });
+
+  for (const input of filterInputs) {
     input.addEventListener('change', () => {
+      if (!activePayload || autoRunning || controller) return;
       continueButton.hidden = true;
+      pauseButton.hidden = true;
       activePayload = null;
+      autoPaused = false;
+      refreshControls();
     });
   }
 
@@ -349,4 +518,6 @@
     link.remove();
     URL.revokeObjectURL(url);
   });
+
+  refreshControls();
 })();
