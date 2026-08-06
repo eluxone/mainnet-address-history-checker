@@ -156,7 +156,24 @@
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `Audit request failed (${response.status}).`);
-    return data.results || [];
+
+    const results = data.results || [];
+    const mostlyUnavailable = results.find((item) =>
+      Number(item.networkErrorCount || 0) >= 4 && Number(item.successfulNetworkCount || 0) <= 1
+    );
+
+    if (mostlyUnavailable) {
+      const failures = (mostlyUnavailable.failedNetworks || [])
+        .map((network) => `${network.label}: ${network.error}`)
+        .join('; ');
+      throw new Error(
+        `Most EVM networks are unavailable for this Alchemy key. Only ${mostlyUnavailable.successfulNetworkCount || 0} of 5 network checks succeeded. ` +
+        `Open the Alchemy app's Networks or Endpoints settings and enable Ethereum Mainnet, Base Mainnet, Arbitrum One, OP Mainnet, and Polygon Mainnet. ` +
+        `${failures ? `Provider details: ${failures}` : ''}`
+      );
+    }
+
+    return results;
   }
 
   function resetRecoveryResults() {
