@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="description" content="EVM recovery auditor, seed-word recovery assistant and public address checker.">
+  <meta name="description" content="EVM recovery auditor, seed-word recovery assistant, public address checker and local wallet generator.">
   <title>EVM Recovery & Address Auditor</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -15,7 +15,7 @@
       <div>
         <p class="eyebrow">Configured EVM networks</p>
         <h1>Recovery & Address Auditor</h1>
-        <p class="subtitle">Recover one missing or incorrect seed word, locate addresses from a BIP-39 phrase you own, or inspect one public address across Ethereum Mainnet, Base Mainnet, and OP Mainnet.</p>
+        <p class="subtitle">Recover one missing or incorrect seed word, locate addresses from a BIP-39 phrase you own, inspect one public address, or generate one new wallet locally in your browser.</p>
       </div>
     </header>
 
@@ -23,6 +23,7 @@
       <a class="tab-button" href="/recover">Seed-word recovery</a>
       <button class="tab-button active" type="button" data-tab="recovery">Recovery auditor</button>
       <button class="tab-button" type="button" data-tab="address">Public address checker</button>
+      <button class="tab-button" type="button" data-tab="generator">Local wallet generator</button>
     </nav>
 
     <section id="tab-recovery" class="tab-panel" data-panel="recovery">
@@ -248,12 +249,82 @@
       </section>
     </section>
 
+    <section id="tab-generator" class="tab-panel" data-panel="generator" hidden>
+      <section class="panel warning-panel">
+        <p class="step">ONE WALLET AT A TIME</p>
+        <h2>Generate a new wallet locally in this browser tab</h2>
+        <p>This feature creates one fresh wallet using secure browser randomness. It does not automatically generate or scan batches of random wallets. A newly generated wallet is expected to have zero balance and no previous activity. For valuable assets, use an official wallet application or hardware wallet instead of a hosted webpage.</p>
+      </section>
+
+      <section class="panel checker-panel" aria-labelledby="generator-title">
+        <div class="panel-heading">
+          <div>
+            <p class="step">LOCAL BIP-39 GENERATOR</p>
+            <h2 id="generator-title">Create one new Ethereum wallet</h2>
+          </div>
+          <span class="network-badge">Generated in browser</span>
+        </div>
+
+        <label for="generator-word-count">Recovery phrase length</label>
+        <select id="generator-word-count">
+          <option value="12">12 words — 128-bit entropy</option>
+          <option value="24">24 words — 256-bit entropy</option>
+        </select>
+        <p class="field-help">The wallet uses the standard Ethereum path m/44'/60'/0'/0/0.</p>
+
+        <div class="actions">
+          <button id="generate-wallet-button" class="primary" type="button">Generate one new wallet</button>
+          <button id="clear-generated-wallet" class="secondary" type="button" disabled>Clear generated wallet</button>
+        </div>
+        <div id="generator-message" class="message" role="alert" aria-live="polite" hidden></div>
+      </section>
+
+      <section id="generator-output" class="panel history-panel" hidden>
+        <div class="panel-heading history-heading">
+          <div>
+            <p class="step">GENERATED WALLET</p>
+            <h2>Back up the recovery phrase before using this address</h2>
+          </div>
+          <button id="reveal-generated-secrets" class="secondary" type="button" disabled>Reveal seed and private key</button>
+        </div>
+
+        <label for="generated-address">Public address</label>
+        <div class="input-row">
+          <input id="generated-address" class="mono" type="text" readonly>
+          <button id="copy-generated-address" class="secondary" type="button" disabled>Copy address</button>
+        </div>
+
+        <label for="generated-path">Derivation path</label>
+        <input id="generated-path" class="mono" type="text" readonly>
+
+        <label for="generated-phrase">Recovery phrase</label>
+        <textarea id="generated-phrase" class="secret-input secret-hidden" rows="3" readonly autocomplete="off" spellcheck="false"></textarea>
+
+        <label for="generated-private-key">Private key</label>
+        <input id="generated-private-key" class="mono" type="password" readonly autocomplete="off" spellcheck="false">
+
+        <div class="actions">
+          <button id="copy-generated-phrase" class="secondary" type="button" disabled>Copy recovery phrase</button>
+          <button id="copy-generated-private-key" class="secondary" type="button" disabled>Copy private key</button>
+        </div>
+
+        <label for="generator-access-token">Private app passcode</label>
+        <input id="generator-access-token" type="password" autocomplete="current-password" placeholder="The APP_ACCESS_TOKEN configured in Vercel">
+        <p class="field-help">Only the generated public address is sent to the checker. The phrase and private key remain in this browser tab.</p>
+
+        <div class="actions">
+          <button id="check-generated-address" class="primary" type="button" disabled>Check this generated public address</button>
+        </div>
+      </section>
+    </section>
+
     <footer>
-      <p>No random recovery phrases are generated. The recovery tools are intended only for wallets that belong to the user or that the user is authorized to recover.</p>
+      <p>The recovery tools are intended only for wallets that belong to the user or that the user is authorized to recover. The local generator creates one fresh wallet at a time and does not perform bulk random-wallet scanning.</p>
     </footer>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng==" crossorigin="anonymous" defer></script>
   <script src="/app.js" defer></script>
   <script src="/recovery.js" defer></script>
+  <script src="/generator.js" defer></script>
 </body>
 </html>
