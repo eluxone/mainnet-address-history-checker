@@ -1,1 +1,1 @@
-export { default } from './btc-discovery-v2.mjs';
+export { default } from './btc-discovery-v3.mjs';
