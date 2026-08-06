@@ -14,6 +14,7 @@
   const accessToken = document.querySelector('#btc-access-token');
   const sort = document.querySelector('#btc-sort');
   const searchButton = document.querySelector('#btc-search-button');
+  const continueButton = document.querySelector('#btc-continue-button');
   const clearButton = document.querySelector('#btc-clear-button');
   const message = document.querySelector('#btc-message');
   const progress = document.querySelector('#btc-progress');
@@ -30,6 +31,13 @@
 
   let currentRows = [];
   let controller = null;
+  let nextOffset = 0;
+  let candidateCount = 0;
+  let checkedTotal = 0;
+  let totalBigQueryBytes = 0;
+  let addressCacheHits = 0;
+  let providerErrors = 0;
+  let activePayload = null;
 
   function showMessage(text, kind = '') {
     message.textContent = text;
@@ -43,14 +51,16 @@
     message.hidden = true;
   }
 
-  function setBusy(value) {
+  function setBusy(value, continuing = false) {
     searchButton.disabled = value;
+    continueButton.disabled = value;
     clearButton.disabled = value;
-    searchButton.textContent = value ? 'Searching public BTC data…' : 'Search public BTC data';
+    searchButton.textContent = value && !continuing ? 'Discovering candidates…' : 'Start new search';
+    continueButton.textContent = value && continuing ? 'Checking next batch…' : 'Continue search';
     progress.hidden = !value;
-    progressLabel.textContent = value
-      ? 'Querying historical Bitcoin records…'
-      : 'Preparing public-data query…';
+    progressLabel.textContent = continuing
+      ? `Checking cached candidates ${nextOffset + 1} onward…`
+      : 'Estimating and discovering historical candidates…';
   }
 
   function safeNumber(input, min, max, label) {
@@ -63,9 +73,7 @@
 
   function parseTimestamp(value) {
     if (value === null || value === undefined || value === '') return null;
-    const unwrapped = typeof value === 'object' && value.value !== undefined
-      ? value.value
-      : value;
+    const unwrapped = typeof value === 'object' && value.value !== undefined ? value.value : value;
     const text = String(unwrapped).trim();
     if (!text) return null;
 
@@ -73,14 +81,10 @@
     if (/^-?\d+(?:\.\d+)?$/.test(text)) {
       const numeric = Number(text);
       if (!Number.isFinite(numeric)) return null;
-      const milliseconds = Math.abs(numeric) >= 1_000_000_000_000
-        ? numeric
-        : numeric * 1000;
-      date = new Date(milliseconds);
+      date = new Date(Math.abs(numeric) >= 1_000_000_000_000 ? numeric : numeric * 1_000);
     } else {
       date = new Date(text);
     }
-
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
@@ -114,8 +118,8 @@
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
     let amount = bytes;
     let unit = 0;
-    while (amount >= 1024 && unit < units.length - 1) {
-      amount /= 1024;
+    while (amount >= 1_000 && unit < units.length - 1) {
+      amount /= 1_000;
       unit += 1;
     }
     return `${amount.toFixed(amount >= 10 || unit === 0 ? 1 : 2)} ${units[unit]}`;
@@ -133,13 +137,26 @@
     return cell;
   }
 
+  function sortRows(rows) {
+    const copy = [...rows];
+    copy.sort((left, right) => {
+      if (sort.value === 'balance_desc') {
+        return Number(right.balanceBtc) - Number(left.balanceBtc) || Number(right.inactiveDays) - Number(left.inactiveDays);
+      }
+      if (sort.value === 'oldest_first') {
+        return String(left.firstSeen || '').localeCompare(String(right.firstSeen || ''));
+      }
+      return Number(right.inactiveDays) - Number(left.inactiveDays) || Number(right.balanceBtc) - Number(left.balanceBtc);
+    });
+    return copy;
+  }
+
   function renderRows(rows) {
     resultsBody.replaceChildren();
     empty.hidden = rows.length > 0;
 
     for (const item of rows) {
       const row = document.createElement('tr');
-
       const addressCell = createCell(shortenAddress(item.address), 'mono');
       addressCell.title = item.address;
       row.append(addressCell);
@@ -157,60 +174,112 @@
       link.textContent = 'View public address';
       explorerCell.append(link);
       row.append(explorerCell);
-
       resultsBody.append(row);
     }
   }
 
-  function clearResults() {
+  function resetState() {
     controller?.abort();
     controller = null;
     currentRows = [];
+    nextOffset = 0;
+    candidateCount = 0;
+    checkedTotal = 0;
+    totalBigQueryBytes = 0;
+    addressCacheHits = 0;
+    providerErrors = 0;
+    activePayload = null;
     resultsBody.replaceChildren();
     resultsPanel.hidden = true;
     progress.hidden = true;
+    continueButton.hidden = true;
+    continueButton.disabled = true;
     exportButton.disabled = true;
     resultCount.textContent = '0';
-    candidatesCount.textContent = '0';
+    candidatesCount.textContent = '0 / 0';
     bytesProcessed.textContent = '—';
     cacheStatus.textContent = '—';
     hideMessage();
   }
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  function buildPayload(offset = 0) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate.value) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate.value)) {
+      throw new Error('Enter a valid start and end date.');
+    }
+    if (startDate.value > endDate.value) throw new Error('The start date must be on or before the end date.');
+
+    const minBtc = safeNumber(minBalance, 0, 21_000_000, 'Minimum BTC');
+    const maxBtc = safeNumber(maxBalance, 0, 21_000_000, 'Maximum BTC');
+    if (minBtc > maxBtc) throw new Error('Minimum BTC cannot exceed maximum BTC.');
+
+    return {
+      startDate: startDate.value,
+      endDate: endDate.value,
+      minBalanceBtc: minBtc,
+      maxBalanceBtc: maxBtc,
+      minInactiveDays: Math.trunc(safeNumber(minInactive, 0, 10_000, 'Minimum inactive days')),
+      target: Math.trunc(safeNumber(target, 1, 100, 'Target results')),
+      candidateLimit: Math.trunc(safeNumber(candidateLimit, 10, 5_000, 'Candidate limit')),
+      sort: sort.value,
+      offset
+    };
+  }
+
+  function mergeRows(rows) {
+    const byAddress = new Map(currentRows.map((item) => [item.address, item]));
+    for (const item of rows) byAddress.set(item.address, item);
+    currentRows = sortRows([...byAddress.values()]).slice(0, Number(activePayload?.target || 100));
+  }
+
+  function updateResults(data) {
+    mergeRows(Array.isArray(data.results) ? data.results : []);
+    candidateCount = Number(data.candidateCount || candidateCount || 0);
+    checkedTotal = Number(data.nextOffset || checkedTotal || 0);
+    nextOffset = Number(data.nextOffset || 0);
+    totalBigQueryBytes += Number(data.bigQueryBytesProcessed || 0);
+    addressCacheHits += Number(data.addressCacheHits || 0);
+    providerErrors += Number(data.providerErrors || 0);
+
+    renderRows(currentRows);
+    resultCount.textContent = String(currentRows.length);
+    candidatesCount.textContent = `${new Intl.NumberFormat().format(checkedTotal)} / ${new Intl.NumberFormat().format(candidateCount)}`;
+    bytesProcessed.textContent = formatBytes(totalBigQueryBytes);
+    cacheStatus.textContent = `${addressCacheHits} address hit${addressCacheHits === 1 ? '' : 's'}${data.candidateCacheHit ? ' · candidates cached' : ''}`;
+    resultsTitle.textContent = `${currentRows.length} public address${currentRows.length === 1 ? '' : 'es'} matched`;
+    resultsPanel.hidden = false;
+    exportButton.disabled = currentRows.length === 0;
+
+    const targetReached = currentRows.length >= Number(activePayload.target);
+    const hasMore = Boolean(data.hasMore) && !targetReached;
+    continueButton.hidden = !hasMore;
+    continueButton.disabled = !hasMore;
+
+    const errorNote = providerErrors ? ` ${providerErrors} public API check${providerErrors === 1 ? '' : 's'} failed and can be retried.` : '';
+    if (targetReached) {
+      showMessage(`Target reached. Found ${currentRows.length} matching public addresses after checking ${checkedTotal} of ${candidateCount} candidates.${errorNote}`, 'success');
+    } else if (hasMore) {
+      showMessage(`Checked ${checkedTotal} of ${candidateCount} cached candidates and found ${currentRows.length} matches. Use Continue search for the next batch.${errorNote}`, 'success');
+    } else {
+      showMessage(`Search complete. Checked all ${candidateCount} candidates and found ${currentRows.length} matches.${errorNote}`, 'success');
+    }
+    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function runBatch(offset, continuing) {
     hideMessage();
+    const payload = continuing && activePayload
+      ? { ...activePayload, offset }
+      : buildPayload(offset);
+    if (!continuing) {
+      resetState();
+      activePayload = { ...payload, offset: 0 };
+    }
 
+    setBusy(true, continuing);
+    controller = new AbortController();
     try {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate.value) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate.value)) {
-        throw new Error('Enter a valid start and end date.');
-      }
-      if (startDate.value > endDate.value) {
-        throw new Error('The start date must be on or before the end date.');
-      }
-
-      const minBtc = safeNumber(minBalance, 0, 21_000_000, 'Minimum BTC');
-      const maxBtc = safeNumber(maxBalance, 0, 21_000_000, 'Maximum BTC');
-      if (minBtc > maxBtc) throw new Error('Minimum BTC cannot exceed maximum BTC.');
-
-      const payload = {
-        startDate: startDate.value,
-        endDate: endDate.value,
-        minBalanceBtc: minBtc,
-        maxBalanceBtc: maxBtc,
-        minInactiveDays: Math.trunc(safeNumber(minInactive, 0, 10_000, 'Minimum inactive days')),
-        target: Math.trunc(safeNumber(target, 1, 100, 'Target results')),
-        candidateLimit: Math.trunc(safeNumber(candidateLimit, 10, 5_000, 'Candidate limit')),
-        sort: sort.value
-      };
-
-      clearResults();
-      setBusy(true);
-      controller = new AbortController();
-
       const headers = { 'Content-Type': 'application/json' };
       if (accessToken.value) headers['X-App-Access-Token'] = accessToken.value;
-
       const response = await fetch('/api/btc-discovery', {
         method: 'POST',
         headers,
@@ -219,34 +288,41 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `BTC discovery request failed (${response.status}).`);
-
-      currentRows = Array.isArray(data.results) ? data.results : [];
-      renderRows(currentRows);
-      resultCount.textContent = String(currentRows.length);
-      candidatesCount.textContent = String(data.candidatesEvaluated ?? payload.candidateLimit);
-      bytesProcessed.textContent = formatBytes(data.totalBytesProcessed);
-      cacheStatus.textContent = data.cacheHit ? 'Used' : 'Not used';
-      resultsTitle.textContent = `${currentRows.length} public address${currentRows.length === 1 ? '' : 'es'} matched`;
-      resultsPanel.hidden = false;
-      exportButton.disabled = currentRows.length === 0;
-      showMessage(
-        currentRows.length
-          ? `Search complete. ${currentRows.length} public address${currentRows.length === 1 ? '' : 'es'} matched the selected filters.`
-          : 'Search complete. No public addresses matched all selected filters.',
-        'success'
-      );
-      resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      updateResults(data);
     } catch (error) {
-      if (error?.name !== 'AbortError') {
-        showMessage(error?.message || 'Unable to search public Bitcoin data.');
-      }
+      if (error?.name !== 'AbortError') showMessage(error?.message || 'Unable to search public Bitcoin data.');
     } finally {
       controller = null;
-      setBusy(false);
+      setBusy(false, continuing);
+    }
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await runBatch(0, false);
+    } catch (error) {
+      showMessage(error?.message || 'Unable to start the search.');
     }
   });
 
-  clearButton.addEventListener('click', clearResults);
+  continueButton.addEventListener('click', async () => {
+    if (!activePayload || nextOffset >= candidateCount) return;
+    await runBatch(nextOffset, true);
+  });
+
+  clearButton.addEventListener('click', resetState);
+  sort.addEventListener('change', () => {
+    currentRows = sortRows(currentRows);
+    renderRows(currentRows);
+  });
+
+  for (const input of [startDate, endDate, minInactive, minBalance, maxBalance, target, candidateLimit]) {
+    input.addEventListener('change', () => {
+      continueButton.hidden = true;
+      activePayload = null;
+    });
+  }
 
   exportButton.addEventListener('click', () => {
     if (!currentRows.length) return;
