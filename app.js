@@ -2,6 +2,15 @@
 
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
+const mainTabs = document.querySelector('.tabs');
+
+if (mainTabs && !mainTabs.querySelector('a[href="/btc"]')) {
+  const btcLink = document.createElement('a');
+  btcLink.className = 'tab-button';
+  btcLink.href = '/btc';
+  btcLink.textContent = 'BTC Discovery Lab';
+  mainTabs.append(btcLink);
+}
 
 function switchTab(name) {
   for (const button of tabButtons) {
