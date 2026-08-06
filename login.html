@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Cache-Control" content="no-store">
   <title>Private Access</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -22,6 +23,7 @@
       <form id="login-form" novalidate>
         <label for="site-password">Website password</label>
         <input id="site-password" type="password" autocomplete="current-password" required autofocus>
+        <p id="login-status" class="field-help" aria-live="polite">Checking login service…</p>
         <div class="actions">
           <button id="login-button" class="primary" type="submit">Unlock website</button>
         </div>
@@ -29,6 +31,6 @@
       <div id="login-message" class="message" role="alert" aria-live="polite" hidden></div>
     </section>
   </main>
-  <script src="/login.js" defer></script>
+  <script src="/login.js?v=202608061836" defer></script>
 </body>
 </html>
