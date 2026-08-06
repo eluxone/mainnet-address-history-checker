@@ -1,25 +1,34 @@
-ETHEREUM RECOVERY & ADDRESS AUDITOR — VERCEL SETUP
+EVM RECOVERY & ADDRESS AUDITOR — VERCEL SETUP
 
 1. Connect this GitHub repository to Vercel.
 
-2. In the Vercel project, open Settings > Environment Variables.
+2. In Alchemy, open the app used by this project and enable these chains:
+   - Ethereum Mainnet
+   - Base Mainnet
+   - Arbitrum One
+   - OP Mainnet
+   - Polygon Mainnet
 
-3. Confirm this variable already exists:
-   ALCHEMY_API_KEY = your Alchemy Ethereum Mainnet API key
+3. In the Vercel project, open Settings > Environment Variables.
 
-4. Add a second required variable for the recovery auditor:
+4. Confirm this variable exists:
+   ALCHEMY_API_KEY = your Alchemy API key
+
+5. Confirm this variable exists for the recovery auditor:
    APP_ACCESS_TOKEN = a long private passcode of your choice
 
    Do not publish this passcode in GitHub or share it publicly.
 
-5. Apply both variables to Production and save them.
+6. Apply both variables to Production and save them.
 
-6. Open Deployments and redeploy the latest deployment.
+7. Open Deployments and redeploy the latest deployment.
 
-7. Open the live Vercel URL. The first tab is Recovery auditor.
+8. Open the live Vercel URL. The first tab is Recovery auditor.
 
-8. The recovery auditor accepts an EXISTING BIP-39 phrase you own. It derives public addresses in browser memory and submits only public addresses for checking.
+9. The recovery auditor accepts an EXISTING BIP-39 phrase you own. It derives public addresses in browser memory and submits only public addresses for checking.
 
-9. It supports Standard / MetaMask, Ledger Live and Legacy Ledger paths, with up to 1,000 addresses per run.
+10. It supports Standard / MetaMask, Ledger Live and Legacy Ledger paths, with up to 1,000 addresses per run.
 
-10. Never use the app to enter a phrase that does not belong to you. For a high-value wallet, use a reviewed local copy instead of a hosted webpage.
+11. Results show which of the supported EVM networks returned activity evidence.
+
+12. Never use the app to enter a phrase that does not belong to you. For a high-value wallet, use a reviewed local copy instead of a hosted webpage.
