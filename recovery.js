@@ -159,7 +159,7 @@
 
     const results = data.results || [];
     const mostlyUnavailable = results.find((item) =>
-      Number(item.networkErrorCount || 0) >= 4 && Number(item.successfulNetworkCount || 0) <= 1
+      Number(item.networkErrorCount || 0) >= 2 && Number(item.successfulNetworkCount || 0) <= 1
     );
 
     if (mostlyUnavailable) {
@@ -167,8 +167,8 @@
         .map((network) => `${network.label}: ${network.error}`)
         .join('; ');
       throw new Error(
-        `Most EVM networks are unavailable for this Alchemy key. Only ${mostlyUnavailable.successfulNetworkCount || 0} of 5 network checks succeeded. ` +
-        `Open the Alchemy app's Networks or Endpoints settings and enable Ethereum Mainnet, Base Mainnet, Arbitrum One, OP Mainnet, and Polygon Mainnet. ` +
+        `Most configured networks are unavailable. Only ${mostlyUnavailable.successfulNetworkCount || 0} of 3 network checks succeeded. ` +
+        `Confirm that Ethereum Mainnet, Base Mainnet, and OP Mainnet are enabled in the Alchemy app. ` +
         `${failures ? `Provider details: ${failures}` : ''}`
       );
     }
@@ -256,7 +256,7 @@
           foundResults.length,
           errors,
           chunk[0].path,
-          `Checking ${PROFILE_LABELS[profile]} address across supported EVM networks…`
+          `Checking ${PROFILE_LABELS[profile]} address across Ethereum, Base, and OP Mainnet…`
         );
 
         const checked = await checkAddressBatch(chunk, accessToken);
@@ -290,7 +290,7 @@
         }
 
         if (consecutiveTotalFailures >= 3) {
-          throw new Error('The provider failed all network checks for three consecutive addresses. The audit stopped to prevent unreliable results. Wait a few minutes, verify the enabled Alchemy chains, and try again.');
+          throw new Error('The provider failed all three network checks for three consecutive addresses. The audit stopped to prevent unreliable results.');
         }
 
         if (stopGapInput.checked && consecutiveEmpty >= 50) {
