@@ -1,0 +1,18 @@
+MAINNET ADDRESS HISTORY CHECKER — VERCEL SETUP
+
+1. Create an Ethereum Mainnet app in Alchemy and copy the API key.
+
+2. Connect this GitHub repository to Vercel.
+
+3. In your Vercel project, open Settings > Environment Variables.
+
+4. Add:
+   ALCHEMY_API_KEY = your Alchemy API key
+
+5. Recommended: also add:
+   APP_ACCESS_TOKEN = a long private passcode of your choice
+
+6. Redeploy the project after saving the variables.
+
+7. Open the Vercel URL. Paste only a PUBLIC Ethereum address beginning 0x.
+   Never enter a seed phrase or private key.
