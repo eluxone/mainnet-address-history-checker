@@ -1,43 +1,48 @@
 import crypto from "node:crypto";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
-const MAX_ADDRESSES = 4;
+const MAX_ADDRESSES = 1;
 const DEFAULT_CATEGORIES = ["external", "erc20", "erc721", "erc1155"];
+const NETWORK_PAUSE_MS = 650;
+const MAX_RPC_ATTEMPTS = 3;
 
 function supportedNetworks(apiKey) {
-  const key = encodeURIComponent(apiKey);
   return [
     {
       key: "ethereum",
       label: "Ethereum",
       categories: [...DEFAULT_CATEGORIES, "internal"],
-      endpoint: `https://eth-mainnet.g.alchemy.com/v2/${key}`
+      endpoint: `https://eth-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
     },
     {
       key: "base",
       label: "Base",
       categories: DEFAULT_CATEGORIES,
-      endpoint: `https://base-mainnet.g.alchemy.com/v2/${key}`
+      endpoint: `https://base-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
     },
     {
       key: "arbitrum",
       label: "Arbitrum",
       categories: DEFAULT_CATEGORIES,
-      endpoint: `https://arb-mainnet.g.alchemy.com/v2/${key}`
+      endpoint: `https://arb-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
     },
     {
       key: "optimism",
       label: "Optimism",
       categories: DEFAULT_CATEGORIES,
-      endpoint: `https://opt-mainnet.g.alchemy.com/v2/${key}`
+      endpoint: `https://opt-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
     },
     {
       key: "polygon",
       label: "Polygon",
       categories: [...DEFAULT_CATEGORIES, "internal"],
-      endpoint: `https://polygon-mainnet.g.alchemy.com/v2/${key}`
+      endpoint: `https://polygon-mainnet.g.alchemy.com/v2/${encodeURIComponent(apiKey)}`
     }
   ];
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function setResponseHeaders(response) {
@@ -62,7 +67,7 @@ function safeTokenEqual(received, expected) {
 async function readJsonBody(request) {
   if (request.body && typeof request.body === "object") return request.body;
   if (typeof request.body === "string") {
-    if (request.body.length > 32_768) throw new Error("Request body is too large.");
+    if (request.body.length > 8_192) throw new Error("Request body is too large.");
     return JSON.parse(request.body);
   }
 
@@ -70,38 +75,74 @@ async function readJsonBody(request) {
   let total = 0;
   for await (const chunk of request) {
     total += chunk.length;
-    if (total > 32_768) throw new Error("Request body is too large.");
+    if (total > 8_192) throw new Error("Request body is too large.");
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
-async function alchemyRpc(endpoint, payload) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
-  try {
-    const upstream = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+function retryableRpcPayload(payload) {
+  const entries = Array.isArray(payload) ? payload : [payload];
+  return entries.some((entry) => {
+    const code = Number(entry?.error?.code);
+    const message = String(entry?.error?.message || "").toLowerCase();
+    return code === 429 || message.includes("rate limit") || message.includes("compute units") || message.includes("throughput") || message.includes("temporarily unavailable");
+  });
+}
 
-    const text = await upstream.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(`Blockchain provider returned an invalid response (${upstream.status}).`);
-    }
-
-    if (!upstream.ok) {
-      throw new Error(data?.error?.message || `Blockchain provider request failed (${upstream.status}).`);
-    }
-    return data;
-  } finally {
-    clearTimeout(timeout);
+function retryDelay(attempt, retryAfterHeader) {
+  const retryAfterSeconds = Number.parseInt(retryAfterHeader || "", 10);
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.min(retryAfterSeconds * 1_000, 8_000);
   }
+  const exponential = Math.min(1_000 * (2 ** attempt), 8_000);
+  return exponential + crypto.randomInt(100, 351);
+}
+
+async function alchemyRpc(endpoint, payload) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < MAX_RPC_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const upstream = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      const text = await upstream.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Blockchain provider returned an invalid response (${upstream.status}).`);
+      }
+
+      const retryable = upstream.status === 429 || upstream.status >= 500 || retryableRpcPayload(data);
+      if (retryable && attempt < MAX_RPC_ATTEMPTS - 1) {
+        await sleep(retryDelay(attempt, upstream.headers.get("retry-after")));
+        continue;
+      }
+
+      if (!upstream.ok) {
+        throw new Error(data?.error?.message || `Blockchain provider request failed (${upstream.status}).`);
+      }
+      return data;
+    } catch (error) {
+      lastError = error;
+      const retryable = error?.name === "AbortError" || /rate|throughput|temporarily|timeout/i.test(error?.message || "");
+      if (!retryable || attempt >= MAX_RPC_ATTEMPTS - 1) throw error;
+      await sleep(retryDelay(attempt, null));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError || new Error("Blockchain provider request failed.");
 }
 
 function getBatchItem(batch, id) {
@@ -185,25 +226,29 @@ async function inspectAddressOnNetwork(network, address, ordinal) {
 }
 
 async function inspectAddress(networks, item, ordinal) {
-  const settled = await Promise.allSettled(
-    networks.map((network) => inspectAddressOnNetwork(network, item.address, ordinal))
-  );
+  const networkResults = [];
 
-  const networkResults = settled.map((entry, index) => {
-    const base = { key: networks[index].key, label: networks[index].label };
-    if (entry.status === "fulfilled") return entry.value;
-    return {
-      ...base,
-      activityFound: false,
-      evidence: [],
-      balanceNative: "0",
-      outgoingTransactionCount: "0",
-      hasContractCode: false,
-      incomingFound: false,
-      outgoingFound: false,
-      error: entry.reason?.message || "Unable to check this network."
-    };
-  });
+  for (let index = 0; index < networks.length; index += 1) {
+    const network = networks[index];
+    try {
+      networkResults.push(await inspectAddressOnNetwork(network, item.address, ordinal));
+    } catch (error) {
+      networkResults.push({
+        key: network.key,
+        label: network.label,
+        activityFound: false,
+        evidence: [],
+        balanceNative: "0",
+        outgoingTransactionCount: "0",
+        hasContractCode: false,
+        incomingFound: false,
+        outgoingFound: false,
+        error: error?.name === "AbortError" ? "Provider request timed out." : error?.message || "Unable to check this network."
+      });
+    }
+
+    if (index < networks.length - 1) await sleep(NETWORK_PAUSE_MS);
+  }
 
   const activeNetworks = networkResults.filter((result) => result.activityFound);
   const failedNetworks = networkResults.filter((result) => result.error);
@@ -270,72 +315,42 @@ export default async function handler(request, response) {
     return send(response, 400, { error: error.message || "Invalid JSON request." });
   }
 
-  if (!Array.isArray(body.addresses) || body.addresses.length < 1 || body.addresses.length > MAX_ADDRESSES) {
+  if (!Array.isArray(body.addresses) || body.addresses.length !== MAX_ADDRESSES) {
     return send(response, 400, {
-      error: `Submit between 1 and ${MAX_ADDRESSES} public addresses per request.`
+      error: "Submit exactly one public address per recovery-audit request."
     });
   }
 
-  const seen = new Set();
-  const addresses = [];
-  for (const raw of body.addresses) {
-    const address = typeof raw?.address === "string" ? raw.address.trim() : "";
-    const path = typeof raw?.path === "string" ? raw.path.trim() : "";
-    const index = Number(raw?.index);
+  const raw = body.addresses[0];
+  const address = typeof raw?.address === "string" ? raw.address.trim() : "";
+  const path = typeof raw?.path === "string" ? raw.path.trim() : "";
+  const index = Number(raw?.index);
 
-    if (!ADDRESS_RE.test(address)) {
-      return send(response, 400, {
-        error: "One or more submitted public addresses are invalid."
-      });
-    }
-    if (!Number.isSafeInteger(index) || index < 0 || index > 0x7fffffff) {
-      return send(response, 400, {
-        error: "One or more derivation indexes are invalid."
-      });
-    }
-    if (!path || path.length > 96) {
-      return send(response, 400, {
-        error: "One or more derivation paths are invalid."
-      });
-    }
-
-    const dedupeKey = `${address.toLowerCase()}|${path}`;
-    if (seen.has(dedupeKey)) continue;
-    seen.add(dedupeKey);
-    addresses.push({ address, path, index });
+  if (!ADDRESS_RE.test(address)) {
+    return send(response, 400, { error: "The submitted public address is invalid." });
+  }
+  if (!Number.isSafeInteger(index) || index < 0 || index > 0x7fffffff) {
+    return send(response, 400, { error: "The derivation index is invalid." });
+  }
+  if (!path || path.length > 96) {
+    return send(response, 400, { error: "The derivation path is invalid." });
   }
 
   const networks = supportedNetworks(apiKey);
 
   try {
-    const settled = await Promise.allSettled(
-      addresses.map((item, ordinal) => inspectAddress(networks, item, ordinal + 1))
-    );
-
-    const results = settled.map((entry, index) => {
-      if (entry.status === "fulfilled") return entry.value;
-      return {
-        ...addresses[index],
-        activityFound: false,
-        activeNetworks: [],
-        evidence: [],
-        networkErrorCount: networks.length,
-        successfulNetworkCount: 0,
-        error: entry.reason?.message || "Unable to check this address."
-      };
-    });
-
+    const result = await inspectAddress(networks, { address, path, index }, 1);
     return send(response, 200, {
       network: "Supported EVM networks",
       supportedNetworks: networks.map(({ key, label }) => ({ key, label })),
-      results,
+      results: [result],
       checkedAt: new Date().toISOString(),
-      disclaimer: "This deployment checks Ethereum, Base, Arbitrum, Optimism, and Polygon. A zero result is reported only when at least one network check succeeded."
+      disclaimer: "This deployment checks Ethereum, Base, Arbitrum, Optimism, and Polygon. Failed network checks are reported separately and are never counted as empty results."
     });
   } catch (error) {
     const message = error?.name === "AbortError"
-      ? "The blockchain provider timed out. Try a smaller batch."
-      : error?.message || "Unable to audit these addresses.";
+      ? "The blockchain provider timed out. Try again later."
+      : error?.message || "Unable to audit this address.";
     return send(response, 502, { error: message });
   }
 }
