@@ -7,7 +7,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "check": "node --check api/check-address.mjs && node --check api/audit-addresses.mjs && node --check api/login.mjs && node --check app.js && node --check recovery.js && node --check recovery-assistant.js && node --check login.js && node --check middleware.js",
+    "check": "node --check api/check-address.mjs && node --check api/audit-addresses.mjs && node --check api/login.mjs && node --check app.js && node --check recovery.js && node --check recovery-assistant.js && node --check login.js && node --check middleware.js && node --check scripts/copy-vendor.mjs",
+    "vercel-build": "node scripts/copy-vendor.mjs",
     "dev": "vercel dev"
+  },
+  "dependencies": {
+    "ethers": "6.15.0"
   }
 }
