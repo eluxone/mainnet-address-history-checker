@@ -61,15 +61,42 @@
     return value;
   }
 
+  function parseTimestamp(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const unwrapped = typeof value === 'object' && value.value !== undefined
+      ? value.value
+      : value;
+    const text = String(unwrapped).trim();
+    if (!text) return null;
+
+    let date;
+    if (/^-?\d+(?:\.\d+)?$/.test(text)) {
+      const numeric = Number(text);
+      if (!Number.isFinite(numeric)) return null;
+      const milliseconds = Math.abs(numeric) >= 1_000_000_000_000
+        ? numeric
+        : numeric * 1000;
+      date = new Date(milliseconds);
+    } else {
+      date = new Date(text);
+    }
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
   function formatDate(value) {
-    if (!value) return '—';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+    const date = parseTimestamp(value);
+    if (!date) return '—';
     return new Intl.DateTimeFormat(undefined, {
       year: 'numeric',
       month: 'short',
       day: '2-digit'
     }).format(date);
+  }
+
+  function isoTimestamp(value) {
+    const date = parseTimestamp(value);
+    return date ? date.toISOString() : '';
   }
 
   function formatBtc(value) {
@@ -229,8 +256,8 @@
       ...currentRows.map((item) => [
         item.address,
         item.balanceBtc,
-        item.firstSeen,
-        item.lastActivity,
+        isoTimestamp(item.firstSeen),
+        isoTimestamp(item.lastActivity),
         item.inactiveDays,
         item.activityRecords
       ])
