@@ -7,13 +7,19 @@ on:
       - 'qa/full-browser-qa-report.json'
       - 'qa/full-browser-qa-summary.md'
   workflow_dispatch:
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   browser-qa:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Record full browser QA result'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.issue.title == '[QA] Run full browser QA') ||
+      (github.event_name == 'push' && github.event.head_commit.message != 'Record full browser QA result')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -21,6 +27,7 @@ jobs:
       LOCAL_BASE: http://127.0.0.1:4173
       QA_USERNAME: ${{ secrets.QA_USERNAME }}
       QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout
@@ -36,6 +43,18 @@ jobs:
           npm install --ignore-scripts --no-audit --no-fund
           npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
+
+      - name: Repair QA runner compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('qa/full-browser-qa.mjs')
+          s = p.read_text()
+          s = s.replace("import { chromium } from 'playwright';", "import { chromium, request } from 'playwright';")
+          s = s.replace('browser.request.newContext', 'request.newContext')
+          p.write_text(s)
+          PY
+          node --check qa/full-browser-qa.mjs
 
       - name: Run source, cryptographic and configuration checks
         run: npm run check
@@ -72,12 +91,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Record QA report in repository
+      - name: Comment QA summary on trigger issue
+        if: always() && github.event_name == 'issues'
+        run: |
+          if [ -f qa/full-browser-qa-summary.md ]; then
+            gh issue comment "${{ github.event.issue.number }}" --body-file qa/full-browser-qa-summary.md
+          else
+            gh issue comment "${{ github.event.issue.number }}" --body "Browser QA could not produce a report. Check the workflow logs for the setup failure."
+          fi
+
+      - name: Record QA report and runner fix in repository
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add qa/full-browser-qa-report.json qa/full-browser-qa-summary.md
+          git add qa/full-browser-qa.mjs
+          if [ -f qa/full-browser-qa-report.json ]; then git add qa/full-browser-qa-report.json; fi
+          if [ -f qa/full-browser-qa-summary.md ]; then git add qa/full-browser-qa-summary.md; fi
           if ! git diff --cached --quiet; then
             git commit -m "Record full browser QA result"
             git push
