@@ -272,7 +272,7 @@
       maxBalanceBtc: maxBtc,
       minInactiveDays: Math.trunc(safeNumber(minInactive, 0, 10_000, 'Minimum inactive days')),
       target: Math.trunc(safeNumber(target, 1, 100, 'Target results')),
-      candidateLimit: Math.trunc(safeNumber(candidateLimit, 10, 5_000, 'Candidate limit')),
+      candidateLimit: Math.trunc(safeNumber(candidateLimit, 10, 10_000, 'Candidate limit')),
       sort: sort.value,
       offset
     };

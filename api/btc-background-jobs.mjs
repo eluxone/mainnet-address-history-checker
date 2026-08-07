@@ -3,7 +3,7 @@ import { send as sendQueue } from '@vercel/queue';
 
 const TOPIC = 'btc-background-scan';
 const MAX_RESULTS = 100;
-const MAX_CANDIDATES = 5000;
+const MAX_CANDIDATES = 10000;
 
 function send(res,status,payload){res.setHeader('Cache-Control','no-store,max-age=0');res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('X-Content-Type-Options','nosniff');return res.status(status).json(payload)}
 function eq(a,b){if(typeof a!=='string'||typeof b!=='string')return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&crypto.timingSafeEqual(x,y)}

@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const SATOSHIS_PER_BTC = 100_000_000;
 const MAX_BODY_BYTES = 16_000;
-const MAX_CANDIDATES = 5_000;
+const MAX_CANDIDATES = 10_000;
 const DEFAULT_MAX_BYTES = 25_000_000_000;
 
 class HttpError extends Error {
