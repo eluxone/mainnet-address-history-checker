@@ -1,0 +1,93 @@
+name: Full browser QA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'qa/full-browser-qa-report.json'
+      - 'qa/full-browser-qa-summary.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  browser-qa:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Record full browser QA result'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PROD_BASE: https://portofele.vercel.app
+      LOCAL_BASE: http://127.0.0.1:4173
+      QA_USERNAME: ${{ secrets.QA_USERNAME }}
+      QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install project and browser dependencies
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run source, cryptographic and configuration checks
+        run: npm run check
+
+      - name: Start local static site
+        run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/chainlab-qa-http.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/login.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/chainlab-qa-http.log
+          exit 1
+
+      - name: Run desktop and mobile browser suite
+        id: browser
+        shell: bash
+        run: |
+          set +e
+          node qa/full-browser-qa.mjs
+          code=$?
+          echo "$code" > qa/full-browser-qa-exit-code.txt
+          exit 0
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chainlab-full-browser-qa
+          path: |
+            qa/full-browser-qa-report.json
+            qa/full-browser-qa-summary.md
+            qa/browser-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Record QA report in repository
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add qa/full-browser-qa-report.json qa/full-browser-qa-summary.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Record full browser QA result"
+            git push
+          fi
+
+      - name: Mark workflow failed when browser tests failed
+        if: always()
+        run: |
+          code=$(cat qa/full-browser-qa-exit-code.txt 2>/dev/null || echo 1)
+          if [ "$code" != "0" ]; then
+            echo "Browser QA reported failures. See qa/full-browser-qa-summary.md and the uploaded artifact."
+            exit "$code"
+          fi
