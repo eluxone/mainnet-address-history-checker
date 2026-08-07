@@ -21,7 +21,7 @@ jobs:
       (github.event_name == 'issues' && github.event.issue.title == '[QA] Run full browser QA') ||
       (github.event_name == 'push' && github.event.head_commit.message != 'Record full browser QA result')
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     env:
       PROD_BASE: https://portofele.vercel.app
       LOCAL_BASE: http://127.0.0.1:4173
@@ -38,14 +38,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install project and browser dependencies
-        run: |
-          npm install --ignore-scripts --no-audit --no-fund
-          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0
-          npx playwright install --with-deps chromium
-
       - name: Repair QA runner compatibility
         run: |
+          mkdir -p qa
           python3 - <<'PY'
           from pathlib import Path
           p = Path('qa/full-browser-qa.mjs')
@@ -56,26 +51,71 @@ jobs:
           PY
           node --check qa/full-browser-qa.mjs
 
-      - name: Run source, cryptographic and configuration checks
-        run: npm run check
-
-      - name: Start local static site
-        run: |
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/chainlab-qa-http.log 2>&1 &
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/login.html >/dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/chainlab-qa-http.log
-          exit 1
-
-      - name: Run desktop and mobile browser suite
-        id: browser
+      - name: Install project and browser dependencies
+        id: install
+        continue-on-error: true
         shell: bash
         run: |
           set +e
-          node qa/full-browser-qa.mjs
-          code=$?
+          : > qa/setup-diagnostics.txt
+          echo '## npm install project' | tee -a qa/setup-diagnostics.txt
+          npm install --ignore-scripts --no-audit --no-fund 2>&1 | tee -a qa/setup-diagnostics.txt
+          project_code=${PIPESTATUS[0]}
+          echo "project_install_exit=$project_code" | tee -a qa/setup-diagnostics.txt
+
+          echo '## npm install Playwright' | tee -a qa/setup-diagnostics.txt
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.55.0 2>&1 | tee -a qa/setup-diagnostics.txt
+          playwright_code=${PIPESTATUS[0]}
+          echo "playwright_install_exit=$playwright_code" | tee -a qa/setup-diagnostics.txt
+
+          echo '## install Chromium' | tee -a qa/setup-diagnostics.txt
+          npx playwright install --with-deps chromium 2>&1 | tee -a qa/setup-diagnostics.txt
+          chromium_code=${PIPESTATUS[0]}
+          echo "chromium_install_exit=$chromium_code" | tee -a qa/setup-diagnostics.txt
+
+          if [ "$project_code" = 0 ] && [ "$playwright_code" = 0 ] && [ "$chromium_code" = 0 ]; then
+            echo 0 > qa/setup-exit-code.txt
+          else
+            echo 1 > qa/setup-exit-code.txt
+          fi
+          exit 0
+
+      - name: Run source, cryptographic and configuration checks
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          echo '## npm run check' | tee -a qa/setup-diagnostics.txt
+          npm run check 2>&1 | tee -a qa/setup-diagnostics.txt
+          code=${PIPESTATUS[0]}
+          echo "source_check_exit=$code" | tee -a qa/setup-diagnostics.txt
+          echo "$code" > qa/source-check-exit-code.txt
+          exit 0
+
+      - name: Start local static site
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/chainlab-qa-http.log 2>&1 &
+          server_code=1
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/login.html >/dev/null; then server_code=0; break; fi
+            sleep 1
+          done
+          cat /tmp/chainlab-qa-http.log | tee -a qa/setup-diagnostics.txt
+          echo "local_server_exit=$server_code" | tee -a qa/setup-diagnostics.txt
+          echo "$server_code" > qa/server-exit-code.txt
+          exit 0
+
+      - name: Run desktop and mobile browser suite
+        id: browser
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          node qa/full-browser-qa.mjs 2>&1 | tee qa/browser-run.log
+          code=${PIPESTATUS[0]}
           echo "$code" > qa/full-browser-qa-exit-code.txt
           exit 0
 
@@ -87,18 +127,38 @@ jobs:
           path: |
             qa/full-browser-qa-report.json
             qa/full-browser-qa-summary.md
+            qa/setup-diagnostics.txt
+            qa/browser-run.log
             qa/browser-artifacts/
           if-no-files-found: warn
           retention-days: 14
 
       - name: Comment QA summary on trigger issue
         if: always() && github.event_name == 'issues'
+        shell: bash
         run: |
           if [ -f qa/full-browser-qa-summary.md ]; then
-            gh issue comment "${{ github.event.issue.number }}" --body-file qa/full-browser-qa-summary.md
+            {
+              cat qa/full-browser-qa-summary.md
+              echo
+              echo '## Setup diagnostics'
+              echo '```text'
+              tail -n 80 qa/setup-diagnostics.txt 2>/dev/null || true
+              echo '```'
+            } > qa/issue-comment.md
           else
-            gh issue comment "${{ github.event.issue.number }}" --body "Browser QA could not produce a report. Check the workflow logs for the setup failure."
+            {
+              echo '# Browser QA setup failure'
+              echo
+              echo 'The browser suite could not produce its JSON report.'
+              echo
+              echo '```text'
+              tail -n 120 qa/setup-diagnostics.txt 2>/dev/null || true
+              tail -n 120 qa/browser-run.log 2>/dev/null || true
+              echo '```'
+            } > qa/issue-comment.md
           fi
+          gh issue comment "${{ github.event.issue.number }}" --body-file qa/issue-comment.md
 
       - name: Record QA report and runner fix in repository
         if: always()
@@ -113,11 +173,14 @@ jobs:
             git push
           fi
 
-      - name: Mark workflow failed when browser tests failed
+      - name: Mark workflow failed when QA failed
         if: always()
+        shell: bash
         run: |
-          code=$(cat qa/full-browser-qa-exit-code.txt 2>/dev/null || echo 1)
-          if [ "$code" != "0" ]; then
-            echo "Browser QA reported failures. See qa/full-browser-qa-summary.md and the uploaded artifact."
-            exit "$code"
+          setup=$(cat qa/setup-exit-code.txt 2>/dev/null || echo 1)
+          server=$(cat qa/server-exit-code.txt 2>/dev/null || echo 1)
+          browser=$(cat qa/full-browser-qa-exit-code.txt 2>/dev/null || echo 1)
+          if [ "$setup" != 0 ] || [ "$server" != 0 ] || [ "$browser" != 0 ]; then
+            echo "QA failed: setup=$setup server=$server browser=$browser"
+            exit 1
           fi
