@@ -1,4 +1,4 @@
--- Feature 8: global Bitcoin public-address research index
+-- Features 8-12: global Bitcoin public-address research index and workspace metadata
 
 create table if not exists public.btc_address_index (
   address text primary key,
@@ -35,10 +35,22 @@ create table if not exists public.btc_address_occurrences (
 create index if not exists btc_address_occurrences_address_idx on public.btc_address_occurrences (address, last_seen_at desc);
 create index if not exists btc_address_occurrences_source_idx on public.btc_address_occurrences (source_type, source_ref);
 
+create table if not exists public.btc_research_notes (
+  address text primary key references public.btc_address_index(address) on delete cascade,
+  title text not null default '',
+  notes text not null default '',
+  tags text[] not null default '{}'::text[],
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.btc_address_index enable row level security;
 alter table public.btc_address_occurrences enable row level security;
+alter table public.btc_research_notes enable row level security;
 revoke all on table public.btc_address_index from anon, authenticated;
 revoke all on table public.btc_address_occurrences from anon, authenticated;
+revoke all on table public.btc_research_notes from anon, authenticated;
 grant all on table public.btc_address_index to service_role;
 grant all on table public.btc_address_occurrences to service_role;
+grant all on table public.btc_research_notes to service_role;
 grant usage, select on sequence public.btc_address_occurrences_id_seq to service_role;
