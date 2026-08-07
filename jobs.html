@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Background Job Manager</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/global-2026.css">
+</head>
+<body>
+<main class="shell">
+  <header class="hero"><div class="brand-mark" aria-hidden="true">⟳</div><div><p class="eyebrow">PERSISTENT WORK</p><h1>Background Job Manager</h1><p class="subtitle">Control BTC and EVM background scans from one place, even after the browser that created them is closed.</p></div></header>
+  <section class="panel">
+    <div class="panel-heading history-heading"><div><p class="step">FILTERS</p><h2>Find a job</h2></div><button id="jobs-refresh" class="secondary" type="button">Refresh</button></div>
+    <div class="form-grid three-columns">
+      <div><label for="jobs-chain">Type</label><select id="jobs-chain"><option value="all">All jobs</option><option value="btc">BTC</option><option value="evm">EVM</option></select></div>
+      <div><label for="jobs-status-filter">Status</label><select id="jobs-status-filter"><option value="all">All statuses</option><option value="running">Running</option><option value="queued">Queued</option><option value="paused">Paused</option><option value="waiting_provider">Waiting provider</option><option value="complete">Complete</option><option value="target_reached">Target reached</option><option value="cancelled">Cancelled</option><option value="error">Error</option></select></div>
+      <div><label for="jobs-search">Search</label><input id="jobs-search" placeholder="Job name or user"></div>
+    </div>
+    <p id="jobs-status" class="field-help">Loading jobs…</p>
+    <div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Job</th><th>Type</th><th>Owner</th><th>Status</th><th>Progress</th><th>Matches</th><th>Heartbeat</th><th>Actions</th></tr></thead><tbody id="jobs-body"></tbody></table></div>
+  </section>
+</main>
+<script src="/site-pages.js" defer></script>
+<script src="/global-ui.js" defer></script>
+<script src="/user-shell.js" defer></script>
+<script src="/jobs.js" defer></script>
+</body>
+</html>
