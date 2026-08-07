@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Export Center</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/global-2026.css">
+</head>
+<body>
+<main class="shell">
+  <header class="hero"><div class="brand-mark" aria-hidden="true">⇩</div><div><p class="eyebrow">RESEARCH PORTABILITY</p><h1>Export Center</h1><p class="subtitle">Download your public-chain research, persistent job results and activity records as JSON or CSV.</p></div></header>
+  <section class="panel checker-panel">
+    <div class="panel-heading"><div><p class="step">EXPORT SOURCE</p><h2>Choose what to export</h2></div><span id="ex-role" class="network-badge">Loading access…</span></div>
+    <div class="form-grid three-columns">
+      <div><label for="ex-type">Data type</label><select id="ex-type"><option value="btc_job">BTC background job</option><option value="evm_job">EVM background job</option><option value="saved_search">Saved BTC search</option><option value="watchlist">Complete BTC watchlist</option><option value="research_notes">BTC research notes</option><option value="activity">Activity history</option></select></div>
+      <div style="grid-column:span 2"><label for="ex-item">Record</label><select id="ex-item"></select></div>
+    </div>
+    <p id="ex-status" class="field-help">Loading export catalog…</p>
+    <div class="actions"><button id="ex-json" class="primary" type="button">Export JSON</button><button id="ex-csv" class="secondary" type="button">Export CSV</button><button id="ex-refresh" class="secondary" type="button">Refresh catalog</button></div>
+  </section>
+  <section class="panel history-panel"><p class="step">EXPORT POLICY</p><h2>Public research data only</h2><p class="disclaimer">Exports never contain recovery phrases, private keys, app secrets or passwords. Administrator exports may include work records belonging to managed users because administrators have platform-wide oversight.</p></section>
+</main>
+<script src="/site-pages.js" defer></script>
+<script src="/global-ui.js" defer></script>
+<script src="/user-shell.js" defer></script>
+<script src="/exports.js" defer></script>
+</body>
+</html>
