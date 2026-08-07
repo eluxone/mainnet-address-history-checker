@@ -1,0 +1,230 @@
+/* CHAIN//LAB responsive hardening — loaded after the main design system. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.shell,
+main,
+.hero,
+.hero > *,
+.panel,
+.tab-panel,
+.results,
+.form-grid,
+.metric-grid,
+.input-row,
+.table-wrap,
+.crypto-nav-inner,
+.crypto-desktop-links,
+.crypto-nav-actions {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.table-wrap table {
+  max-width: none;
+}
+
+.mono,
+.address-output,
+.field-help,
+.disclaimer,
+.subtitle,
+td,
+th {
+  overflow-wrap: anywhere;
+}
+
+/* Closed off-canvas navigation must not remain keyboard-focusable or affect QA geometry. */
+.crypto-mobile-drawer {
+  visibility: hidden;
+}
+
+.crypto-mobile-drawer.open {
+  visibility: visible;
+}
+
+.crypto-mobile-sheet {
+  overscroll-behavior: contain;
+}
+
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
+@media (max-width: 980px) {
+  .crypto-nav-inner {
+    justify-content: space-between;
+  }
+
+  .crypto-nav-actions {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .shell {
+    max-width: calc(100% - 22px);
+  }
+
+  .hero > div:last-child,
+  .panel-heading > div,
+  .status-line > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  h1,
+  h2,
+  .subtitle,
+  .crypto-brand-copy,
+  .crypto-mobile-link span:last-child {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .tabs {
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  .tab-button {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .panel,
+  .warning-panel,
+  .checker-panel,
+  .history-panel,
+  .progress-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .network-badge,
+  .status-pill {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .input-row > *,
+  .form-grid > *,
+  .metric-grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .table-wrap {
+    border-radius: 12px;
+  }
+
+  /* High-action tables become touch-friendly cards rather than forcing sideways scrolling. */
+  .mobile-card-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .mobile-card-table table,
+  .mobile-card-table tbody,
+  .mobile-card-table tr,
+  .mobile-card-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mobile-card-table table {
+    min-width: 0;
+  }
+
+  .mobile-card-table thead {
+    display: none;
+  }
+
+  .mobile-card-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobile-card-table tr {
+    padding: 12px;
+    border: 1px solid var(--x-line, rgba(151, 167, 255, .18));
+    border-radius: 15px;
+    background: rgba(255, 255, 255, .025);
+  }
+
+  .mobile-card-table td {
+    display: grid;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid rgba(151, 167, 255, .1);
+    align-items: start;
+  }
+
+  .mobile-card-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .mobile-card-table td::before {
+    content: attr(data-label);
+    color: var(--x-muted, #9ba7bf);
+    font-size: .68rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .mobile-card-table td[data-label="Actions"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mobile-card-table td[data-label="Actions"]::before {
+    flex: 0 0 100%;
+  }
+
+  .mobile-card-table td[data-label="Actions"] button,
+  .mobile-card-table td[data-label="Actions"] a {
+    flex: 1 1 112px;
+    width: auto;
+  }
+
+  .mobile-card-table progress {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .crypto-mobile-sheet {
+    width: min(88vw, 360px);
+    max-width: calc(100vw - 18px);
+  }
+}
