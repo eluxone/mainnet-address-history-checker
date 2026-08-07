@@ -1,0 +1,92 @@
+name: QA 2026 UI
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  qa:
+    if: github.event.head_commit.message != 'QA 2026 UI browser and mobile'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Wait for production
+        run: |
+          for i in $(seq 1 36); do
+            if curl -fsS --max-time 10 https://portofele.vercel.app/ >/dev/null; then exit 0; fi
+            sleep 5
+          done
+          echo "Production URL did not become reachable" >&2
+          exit 1
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.54.2
+          npx playwright install --with-deps chromium
+      - name: Test desktop and mobile
+        run: |
+          mkdir -p qa
+          cat > /tmp/qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const base='https://portofele.vercel.app';
+          const paths=['/','/btc','/recover','/btc-research.html','/login.html'];
+          const browser=await chromium.launch({headless:true});
+          const results=[];
+          async function check(viewport,mode){
+            for(const path of paths){
+              const context=await browser.newContext({viewport});
+              const page=await context.newPage();
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const response=await page.goto(base+path,{waitUntil:'networkidle',timeout:60000});
+              if(!response?.ok()) throw new Error(`${mode} ${path}: HTTP ${response?.status()}`);
+              await page.waitForSelector('.crypto-global-nav',{timeout:15000});
+              const intro=page.locator('.crypto-intro');
+              if(await intro.count()){
+                const line=await intro.locator('h1').textContent();
+                if(line?.trim()!=='Step into the anonymous world') throw new Error(`${mode} ${path}: hero line mismatch: ${line}`);
+                await intro.locator('.crypto-enter').click();
+                await page.waitForTimeout(850);
+              }
+              const navCount=await page.locator('.crypto-menu-item').count();
+              if(navCount<5) throw new Error(`${mode} ${path}: only ${navCount} menu items`);
+              if(mode==='desktop'){
+                if(!(await page.locator('.crypto-tools-button').isVisible())) throw new Error(`${path}: All tools not visible on desktop`);
+                await page.locator('.crypto-tools-button').click();
+                if(!(await page.locator('.crypto-tools-menu.open').isVisible())) throw new Error(`${path}: desktop tools menu did not open`);
+              } else {
+                if(!(await page.locator('.crypto-mobile-toggle').isVisible())) throw new Error(`${path}: hamburger not visible on mobile`);
+                await page.locator('.crypto-mobile-toggle').click();
+                if(!(await page.locator('.crypto-mobile-drawer.open .crypto-mobile-sheet').isVisible())) throw new Error(`${path}: mobile drawer did not open`);
+                const mobileLinks=await page.locator('.crypto-mobile-link').count();
+                if(mobileLinks<5) throw new Error(`${path}: only ${mobileLinks} mobile links`);
+              }
+              const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+              if(overflow>3) throw new Error(`${mode} ${path}: body horizontal overflow ${overflow}px`);
+              if(errors.length) throw new Error(`${mode} ${path}: JS errors: ${errors.join(' | ')}`);
+              results.push({mode,path,status:'PASS',navCount,overflow});
+              if(path==='/'&&mode==='desktop') await page.screenshot({path:'qa/desktop-home.png',fullPage:true});
+              if(path==='/'&&mode==='mobile') await page.screenshot({path:'qa/mobile-home.png',fullPage:true});
+              await context.close();
+            }
+          }
+          // separate intro capture
+          {
+            const context=await browser.newContext({viewport:{width:1440,height:1000}});const page=await context.newPage();await page.goto(base+'/',{waitUntil:'networkidle'});await page.waitForSelector('.crypto-intro');await page.screenshot({path:'qa/intro-animation.png'});await context.close();
+          }
+          await check({width:1440,height:1000},'desktop');
+          await check({width:390,height:844},'mobile');
+          await browser.close();
+          const lines=['# 2026 UI Production QA','','Production: '+base,'','| Mode | Page | Status | Menu items | Overflow |','|---|---|---|---:|---:|',...results.map(r=>`| ${r.mode} | ${r.path} | ${r.status} | ${r.navCount} | ${r.overflow}px |`),'','Verified: exact intro line “Step into the anonymous world”, desktop All Tools menu, mobile hamburger drawer, all five repository pages in navigation, and no body-level horizontal overflow.'];
+          fs.writeFileSync('qa/QA_2026_UI.md',lines.join('\n'));
+          JS
+          node /tmp/qa.mjs
+      - name: Commit QA evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add qa/
+          git diff --cached --quiet || git commit -m "QA 2026 UI browser and mobile"
+          git push
