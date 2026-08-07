@@ -1,96 +1,30 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createSessionCookie,clearSessionCookie,hashPassword,verifyPassword,normalizeSecret,supabaseConfig,sb,logActivity,json,decodeSession } from './_auth.mjs';
 
-const COOKIE_NAME = 'wallet_tool_session';
-const MAX_AGE_SECONDS = 60 * 60 * 8;
-const LOGIN_BUILD = '2026-08-06.1836';
+const BUILD='2026-08-07.phase1';
+function bootstrapPassword(){return normalizeSecret(process.env.SITE_PASSWORD)||normalizeSecret(process.env.WALLET_TOOL_PASSWORD)}
 
-function normalizeSecret(value) {
-  let normalized = String(value ?? '').trim();
-  if (normalized.length >= 2) {
-    const first = normalized[0];
-    const last = normalized[normalized.length - 1];
-    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
-      normalized = normalized.slice(1, -1).trim();
+export default async function handler(req,res){
+  const method=req.method||'GET';
+  const c=supabaseConfig();
+  if(!c)return json(res,503,{error:'Supabase is not configured.',build:BUILD});
+  try{
+    if(method==='GET'){
+      const session=decodeSession(req);
+      return json(res,200,{ok:true,configured:Boolean(bootstrapPassword()),authenticated:Boolean(session),build:BUILD,environment:process.env.VERCEL_ENV||'unknown'});
     }
-  }
-  return normalized;
-}
-
-function configuredSecret() {
-  const preferred = normalizeSecret(process.env.WALLET_TOOL_PASSWORD);
-  if (preferred) return { value: preferred, source: 'WALLET_TOOL_PASSWORD' };
-  const legacy = normalizeSecret(process.env.SITE_PASSWORD);
-  if (legacy) return { value: legacy, source: 'SITE_PASSWORD' };
-  return { value: '', source: null };
-}
-
-function safeEqual(left, right) {
-  const leftBuffer = Buffer.from(String(left));
-  const rightBuffer = Buffer.from(String(right));
-  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
-}
-
-function json(body, status = 200, extraHeaders = {}) {
-  return Response.json(body, {
-    status,
-    headers: {
-      'Cache-Control': 'no-store, max-age=0',
-      'X-Login-Build': LOGIN_BUILD,
-      ...extraHeaders
+    if(method==='DELETE')return json(res,200,{ok:true,build:BUILD},{'Set-Cookie':clearSessionCookie()});
+    if(method!=='POST'){res.setHeader('Allow','GET, POST, DELETE');return json(res,405,{error:'Method not allowed.',build:BUILD})}
+    const body=req.body&&typeof req.body==='object'?req.body:await new Promise((resolve,reject)=>{let d='';req.on('data',x=>d+=x);req.on('end',()=>{try{resolve(JSON.parse(d||'{}'))}catch(e){reject(e)}})});
+    const username=String(body?.username||'admin').trim().toLowerCase();const password=String(body?.password||'');
+    if(!/^[a-z0-9._-]{2,50}$/.test(username)||!password)return json(res,400,{error:'Enter a valid username and password.',build:BUILD});
+    let user=(await sb(c,`app_users?select=*&username=ilike.${encodeURIComponent(username)}&limit=1`))?.[0];
+    if(!user&&username==='admin'){
+      const master=bootstrapPassword();if(!master||password!==master)return json(res,401,{error:'Incorrect administrator credentials.',build:BUILD});
+      const hp=hashPassword(master);const rows=await sb(c,'app_users',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({username:'admin',display_name:'Administrator',password_salt:hp.salt,password_hash:hp.hash,role:'admin',active:true})});user=rows?.[0];
     }
-  });
+    if(!user||!user.active||!verifyPassword(password,user.password_salt,user.password_hash))return json(res,401,{error:'Incorrect username or password.',build:BUILD});
+    await sb(c,`app_users?id=eq.${encodeURIComponent(user.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({last_login_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
+    await logActivity(c,user,'login',{tool:'auth'});
+    return json(res,200,{ok:true,user:{id:user.id,username:user.username,displayName:user.display_name,role:user.role},build:BUILD},{'Set-Cookie':createSessionCookie(user)});
+  }catch(e){return json(res,e?.status||502,{error:e?.message||'Login failed.',build:BUILD})}
 }
-
-async function handle(request) {
-  const { value: configuredPassword, source } = configuredSecret();
-
-  if (request.method === 'GET') {
-    return json({
-      ok: true,
-      configured: Boolean(configuredPassword),
-      source,
-      environment: process.env.VERCEL_ENV || 'unknown',
-      build: LOGIN_BUILD
-    });
-  }
-
-  if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed.', build: LOGIN_BUILD }, 405, { Allow: 'GET, POST' });
-  }
-
-  if (!configuredPassword) {
-    return json({
-      error: 'No website-password environment variable is available to this deployment. Add WALLET_TOOL_PASSWORD or SITE_PASSWORD to Production and redeploy.',
-      build: LOGIN_BUILD
-    }, 503);
-  }
-
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: 'The login request contained invalid JSON.', build: LOGIN_BUILD }, 400);
-  }
-
-  const suppliedPassword = normalizeSecret(typeof body?.password === 'string' ? body.password : '');
-  if (!safeEqual(suppliedPassword, configuredPassword)) {
-    return json({
-      error: `Password did not match the ${source} value available to this Production deployment.`,
-      build: LOGIN_BUILD,
-      environment: process.env.VERCEL_ENV || 'unknown'
-    }, 401);
-  }
-
-  const expiresAt = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
-  const signature = createHmac('sha256', configuredPassword)
-    .update(String(expiresAt))
-    .digest('base64url');
-  const token = `${expiresAt}.${signature}`;
-  const cookie = `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${MAX_AGE_SECONDS}`;
-
-  return json({ ok: true, build: LOGIN_BUILD }, 200, { 'Set-Cookie': cookie });
-}
-
-export default {
-  fetch: handle
-};
