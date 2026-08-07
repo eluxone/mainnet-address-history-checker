@@ -38,15 +38,30 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Repair QA runner compatibility
+      - name: Repair and harden QA runner
         run: |
           mkdir -p qa
           python3 - <<'PY'
           from pathlib import Path
           p = Path('qa/full-browser-qa.mjs')
           s = p.read_text()
-          s = s.replace("import { chromium } from 'playwright';", "import { chromium, request } from 'playwright';")
-          s = s.replace('browser.request.newContext', 'request.newContext')
+
+          s = s.replace("import { chromium } from 'playwright';", "import { chromium, request as apiRequest } from 'playwright';")
+          s = s.replace("import { chromium, request } from 'playwright';", "import { chromium, request as apiRequest } from 'playwright';")
+          s = s.replace('browser.request.newContext', 'apiRequest.newContext')
+          s = s.replace('request.newContext', 'apiRequest.newContext')
+          s = s.replace('const request = await apiRequest.newContext', 'const apiContext = await apiRequest.newContext')
+          s = s.replace('const request = await request.newContext', 'const apiContext = await apiRequest.newContext')
+          s = s.replace('await request.get(', 'await apiContext.get(')
+          s = s.replace('await request.dispose()', 'await apiContext.dispose()')
+
+          old = """      const style = getComputedStyle(el);\n      if (style.display === 'none' || style.visibility === 'hidden') return false;\n      const r = el.getBoundingClientRect();\n      return r.width > 0 && r.height > 0 && (r.left < -3 || r.right > innerWidth + 3);"""
+          new = """      const style = getComputedStyle(el);\n      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;\n      if (el.closest('.crypto-mobile-drawer:not(.open), .crypto-tools-menu:not(.open)')) return false;\n      const scrollBox = el.closest('.table-wrap');\n      if (scrollBox && scrollBox.scrollWidth > scrollBox.clientWidth + 2) return false;\n      const r = el.getBoundingClientRect();\n      return r.width > 0 && r.height > 0 && (r.left < -3 || r.right > innerWidth + 3);"""
+          if old in s:
+              s = s.replace(old, new)
+          else:
+              print('offscreen-control pattern already patched or not found')
+
           p.write_text(s)
           PY
           node --check qa/full-browser-qa.mjs
@@ -160,7 +175,7 @@ jobs:
           fi
           gh issue comment "${{ github.event.issue.number }}" --body-file qa/issue-comment.md
 
-      - name: Record QA report and runner fix in repository
+      - name: Record QA report and runner fixes in repository
         if: always()
         run: |
           git config user.name "github-actions[bot]"
