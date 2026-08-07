@@ -5,6 +5,7 @@ const DEFAULT_CATEGORIES=['external','erc20','erc721','erc1155'];
 const NETWORK_PAUSE_MS=500;
 function cfg(){try{const u=new URL(process.env.SUPABASE_URL?.trim());let p=u.pathname.replace(/\/+$/,'');if(!p||p==='/')p='/rest/v1';else if(!p.endsWith('/rest/v1'))p+='/rest/v1';u.pathname=p;u.search='';u.hash='';const key=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;return key?{url:u.toString().replace(/\/$/,''),key}:null}catch{return null}}
 async function sb(c,path,opt={}){const r=await fetch(`${c.url}/${path}`,{...opt,headers:{apikey:c.key,Authorization:`Bearer ${c.key}`,'Content-Type':'application/json',Accept:'application/json',...(opt.headers||{})}});const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch{}if(!r.ok)throw new Error(d?.message||d?.hint||d?.code||`Supabase ${r.status}`);return d}
+async function notify(c,job,kind,title,message){if(!job?.user_id)return;try{await sb(c,'user_notifications',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({user_id:job.user_id,kind,title,message,entity_type:'evm_background_job',entity_id:job.id})})}catch{}}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function networks(key){const k=encodeURIComponent(key);return[{key:'ethereum',label:'Ethereum Mainnet',categories:[...DEFAULT_CATEGORIES,'internal'],endpoint:`https://eth-mainnet.g.alchemy.com/v2/${k}`},{key:'base',label:'Base Mainnet',categories:DEFAULT_CATEGORIES,endpoint:`https://base-mainnet.g.alchemy.com/v2/${k}`},{key:'optimism',label:'OP Mainnet',categories:DEFAULT_CATEGORIES,endpoint:`https://opt-mainnet.g.alchemy.com/v2/${k}`}]}
 async function rpc(endpoint,payload){let last;for(let a=0;a<3;a++){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),10000);try{const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:ctl.signal});const d=await r.json();if((r.status===429||r.status>=500)&&a<2){await sleep(800*(2**a));continue}if(!r.ok)throw new Error(d?.error?.message||`Provider ${r.status}`);return d}catch(e){last=e;if(a<2)await sleep(800*(2**a));else throw e}finally{clearTimeout(tm)}}throw last}
@@ -24,11 +25,11 @@ export const POST=handleCallback(async(message,metadata)=>{
   await sb(c,`evm_background_jobs?id=eq.${encodeURIComponent(jobId)}&next_offset=eq.${offset}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'running',last_heartbeat_at:heartbeat,updated_at:heartbeat,last_error:null})});
 
   const items=Array.isArray(job.items)?job.items:[];
-  if(offset>=items.length){await sb(c,`evm_background_jobs?id=eq.${encodeURIComponent(jobId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'complete',completed_at:new Date().toISOString(),updated_at:new Date().toISOString(),last_heartbeat_at:new Date().toISOString()})});return}
+  if(offset>=items.length){const done=new Date().toISOString();await sb(c,`evm_background_jobs?id=eq.${encodeURIComponent(jobId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'complete',completed_at:done,updated_at:done,last_heartbeat_at:done})});await notify(c,job,'success','EVM background audit complete',`“${job.name||'EVM audit'}” completed with ${Number(job.matched_count||0)} addresses showing activity.`);return}
 
   const item=items[offset];
   let result;
-  try{result=await inspectAddress(apiKey,item)}catch(e){await sb(c,`evm_background_jobs?id=eq.${encodeURIComponent(jobId)}&next_offset=eq.${offset}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'waiting_provider',last_error:String(e?.message||'Provider error').slice(0,500),last_heartbeat_at:new Date().toISOString(),updated_at:new Date().toISOString()})});throw e}
+  try{result=await inspectAddress(apiKey,item)}catch(e){await sb(c,`evm_background_jobs?id=eq.${encodeURIComponent(jobId)}&next_offset=eq.${offset}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'waiting_provider',last_error:String(e?.message||'Provider error').slice(0,500),last_heartbeat_at:new Date().toISOString(),updated_at:new Date().toISOString()})});await notify(c,job,'warning','EVM audit waiting for provider',`“${job.name||'EVM audit'}” is waiting after a provider error and will retry.`);throw e}
 
   const results=Array.isArray(job.results)?job.results:[],matches=result.activityFound?[...results,result]:results;
   const checked=Number(job.checked_count||0)+1,errors=Number(job.network_error_count||0)+Number(result.networkErrorCount||0);
@@ -44,6 +45,10 @@ export const POST=handleCallback(async(message,metadata)=>{
   const patch={status,next_offset:next,checked_count:checked,matched_count:matches.length,network_error_count:errors,consecutive_empty:consecutiveEmpty,consecutive_total_failures:totalFailures,retry_count:0,last_error:lastError,results:matches,last_heartbeat_at:now,updated_at:now,completed_at:completed};
   const updated=await sb(c,`evm_background_jobs?id=eq.${encodeURIComponent(jobId)}&next_offset=eq.${offset}&status=in.(running,queued,waiting_provider)`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(patch)});
   if(!updated?.length)return;
+
+  if(result.activityFound)await notify(c,job,'activity','EVM activity found',`Public address ${result.address.slice(0,10)}… returned activity on ${(result.activeNetworks||[]).join(', ')||'a configured network'}.`);
+  if(status==='complete')await notify(c,job,'success','EVM background audit complete',`“${job.name||'EVM audit'}” completed after ${checked} checked addresses with ${matches.length} activity matches.`);
+  else if(status==='waiting_provider')await notify(c,job,'warning','EVM audit waiting for provider',`“${job.name||'EVM audit'}” paused after repeated provider failures. Resume it when providers recover.`);
 
   if(status==='running')await enqueue(jobId,next,1);
 },{retry:(error,metadata)=>{if(metadata.deliveryCount>10)return{acknowledge:true};return{afterSeconds:Math.min(300,Math.max(10,2**Math.min(metadata.deliveryCount,8)))}}});
