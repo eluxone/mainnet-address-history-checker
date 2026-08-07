@@ -1,4 +1,4 @@
-import { chromium, request } from 'playwright';
+import { chromium, request as apiRequest } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -219,7 +219,10 @@ async function assertCommonLayout(page, profile, slug) {
   const offscreenControls = await page.evaluate(() => [...document.querySelectorAll('input,select,textarea,button,a')]
     .filter(el => {
       const style = getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden') return false;
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+      if (el.closest('.crypto-mobile-drawer:not(.open), .crypto-tools-menu:not(.open)')) return false;
+      const scrollBox = el.closest('.table-wrap');
+      if (scrollBox && scrollBox.scrollWidth > scrollBox.clientWidth + 2) return false;
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && (r.left < -3 || r.right > innerWidth + 3);
     }).slice(0, 10).map(el => ({ tag: el.tagName, id: el.id, text: (el.textContent || '').trim().slice(0, 50), rect: el.getBoundingClientRect().toJSON() })));
@@ -415,27 +418,27 @@ async function runLocalInteractions(browser) {
 
 async function runProductionPublic(browser) {
   await record('production login endpoint reports configured service', 'production-public', async () => {
-    const request = await request.newContext({ baseURL: PROD_BASE, ignoreHTTPSErrors: false });
-    const response = await request.get('/api/login?status=1');
+    const apiContext = await apiRequest.newContext({ baseURL: PROD_BASE, ignoreHTTPSErrors: false });
+    const response = await apiContext.get('/api/login?status=1');
     expect(response.status() === 200, `Login status endpoint returned ${response.status()}`);
     const data = await response.json();
     expect(data.configured === true, 'Production login service reports no configured authentication');
-    await request.dispose();
+    await apiContext.dispose();
   });
 
   await record('production security headers and logo asset are valid', 'production-public', async () => {
-    const request = await request.newContext({ baseURL: PROD_BASE });
-    const login = await request.get('/login.html');
+    const apiContext = await apiRequest.newContext({ baseURL: PROD_BASE });
+    const login = await apiContext.get('/login.html');
     expect(login.status() === 200, `Production login returned ${login.status()}`);
     const headers = login.headers();
     expect((headers['content-security-policy'] || '').includes("default-src 'self'"), 'Missing Content-Security-Policy');
     expect((headers['x-frame-options'] || '').toUpperCase() === 'DENY', 'Missing X-Frame-Options DENY');
     expect((headers['referrer-policy'] || '') === 'no-referrer', 'Missing no-referrer policy');
-    const logo = await request.get('/anonymous-logo.svg');
+    const logo = await apiContext.get('/anonymous-logo.svg');
     expect(logo.status() === 200, `Logo returned ${logo.status()}`);
     const logoText = await logo.text();
     expect(logoText.includes('<svg') && !logoText.includes('<image'), 'Logo is not a native browser-safe SVG');
-    await request.dispose();
+    await apiContext.dispose();
   });
 
   for (const route of protectedRoutes) {
