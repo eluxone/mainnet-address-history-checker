@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { chromium, request } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -415,7 +415,7 @@ async function runLocalInteractions(browser) {
 
 async function runProductionPublic(browser) {
   await record('production login endpoint reports configured service', 'production-public', async () => {
-    const request = await browser.request.newContext({ baseURL: PROD_BASE, ignoreHTTPSErrors: false });
+    const request = await request.newContext({ baseURL: PROD_BASE, ignoreHTTPSErrors: false });
     const response = await request.get('/api/login?status=1');
     expect(response.status() === 200, `Login status endpoint returned ${response.status()}`);
     const data = await response.json();
@@ -424,7 +424,7 @@ async function runProductionPublic(browser) {
   });
 
   await record('production security headers and logo asset are valid', 'production-public', async () => {
-    const request = await browser.request.newContext({ baseURL: PROD_BASE });
+    const request = await request.newContext({ baseURL: PROD_BASE });
     const login = await request.get('/login.html');
     expect(login.status() === 200, `Production login returned ${login.status()}`);
     const headers = login.headers();
