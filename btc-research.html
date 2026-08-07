@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="description" content="Read-only Bitcoin public-address research workspace.">
+  <title>BTC Research Workspace</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="shell">
+  <header class="hero"><div class="brand-mark" aria-hidden="true">₿</div><div><p class="eyebrow">Public Bitcoin analytics</p><h1>Research Workspace</h1><p class="subtitle">One read-only workspace for public address statistics, research notes, saved-search appearances, watchlist history, transactions and UTXOs.</p></div></header>
+  <nav class="tabs" aria-label="Site tools"><a class="tab-button" href="/">EVM auditor</a><a class="tab-button" href="/btc">BTC Discovery Lab</a><a class="tab-button active" href="#">Research Workspace</a></nav>
+  <section class="panel warning-panel"><p class="step">PUBLIC DATA ONLY</p><h2>No wallet access</h2><p>This workspace uses public blockchain records only. It does not request, derive, store or expose seed phrases or private keys.</p></section>
+  <section class="panel checker-panel" style="margin-top:22px">
+    <div class="panel-heading"><div><p class="step">PUBLIC ADDRESS</p><h2>Open research record</h2></div><span class="network-badge">Bitcoin Mainnet</span></div>
+    <div class="form-grid three-columns"><div><label for="rw-address">Bitcoin address</label><input id="rw-address" class="mono" autocomplete="off" spellcheck="false" placeholder="1…, 3…, bc1q…, bc1p…"></div><div><label for="rw-token">Private app passcode</label><input id="rw-token" type="password" autocomplete="current-password" placeholder="APP_ACCESS_TOKEN"></div><div style="align-self:end"><button id="rw-load" class="primary" type="button">Load workspace</button></div></div>
+    <div id="rw-message" class="message" role="alert" aria-live="polite" hidden></div>
+  </section>
+  <section id="rw-summary" class="panel history-panel" style="margin-top:22px" hidden>
+    <div class="panel-heading history-heading"><div><p class="step">CURRENT PUBLIC SNAPSHOT</p><h2 id="rw-title">Address summary</h2></div><div class="actions" style="margin-top:0"><button id="rw-refresh" class="secondary" type="button">Refresh public data</button><button id="rw-export" class="secondary" type="button">Export JSON</button></div></div>
+    <p id="rw-full-address" class="mono address-output"></p><div id="rw-metrics" class="metric-grid"></div>
+  </section>
+  <section id="rw-notes-panel" class="panel" style="margin-top:22px" hidden><p class="step">RESEARCH NOTES</p><h2>Notes and tags</h2><div class="form-grid two-columns"><div><label for="rw-note-title">Title</label><input id="rw-note-title" maxlength="160" placeholder="Optional research title"></div><div><label for="rw-tags">Tags</label><input id="rw-tags" placeholder="comma, separated, tags"></div></div><label for="rw-notes">Notes</label><textarea id="rw-notes" rows="5" maxlength="5000" placeholder="Research notes about this public address"></textarea><div class="actions"><button id="rw-save-notes" class="primary" type="button">Save notes</button></div><p id="rw-notes-status" class="field-help"></p></section>
+  <section id="rw-history" class="panel history-panel" style="margin-top:22px" hidden><div class="panel-heading history-heading"><div><p class="step">RESEARCH HISTORY</p><h2>Where this address has appeared</h2></div></div><div class="metric-grid" id="rw-index-metrics"></div><div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Source</th><th>Reference</th><th>First seen</th><th>Last seen</th></tr></thead><tbody id="rw-occurrences"></tbody></table></div></section>
+  <section id="rw-saved" class="panel history-panel" style="margin-top:22px" hidden><p class="step">SAVED SEARCH APPEARANCES</p><h2>Related saved searches</h2><div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Name</th><th>Status</th><th>Updated</th><th>Notes</th></tr></thead><tbody id="rw-saved-body"></tbody></table></div></section>
+  <section id="rw-watch" class="panel history-panel" style="margin-top:22px" hidden><p class="step">WATCHLIST HISTORY</p><h2>Recorded public-data changes</h2><div id="rw-watch-status" class="field-help"></div><div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Event</th><th>Detected</th><th>Previous balance</th><th>New balance</th></tr></thead><tbody id="rw-watch-events"></tbody></table></div></section>
+  <section id="rw-txs-panel" class="panel history-panel" style="margin-top:22px" hidden><p class="step">RECENT CONFIRMED TRANSACTIONS</p><h2>Transaction timeline</h2><div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Transaction</th><th>Date</th><th>Block</th><th>Fee sats</th><th>Explorer</th></tr></thead><tbody id="rw-txs"></tbody></table></div></section>
+  <section id="rw-utxo-panel" class="panel history-panel" style="margin-top:22px" hidden><p class="step">UNSPENT OUTPUTS</p><h2>Current public UTXOs</h2><div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Transaction</th><th>Vout</th><th>BTC</th><th>Date</th><th>Age</th></tr></thead><tbody id="rw-utxos"></tbody></table></div></section>
+  <footer><p>Public blockchain research only. No signing, private-key, seed-phrase or transaction-broadcast functionality.</p></footer>
+</main>
+<script src="/btc-research.js" defer></script>
+</body>
+</html>
