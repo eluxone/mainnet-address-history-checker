@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Cross-chain Address Workspace</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/global-2026.css">
+</head>
+<body>
+<main class="shell">
+  <header class="hero"><div class="brand-mark" aria-hidden="true">⌁</div><div><p class="eyebrow">PUBLIC ADDRESS INTELLIGENCE</p><h1>Cross-chain Address Workspace</h1><p class="subtitle">Paste one public Bitcoin or EVM address. CHAIN//LAB detects the network family and loads the correct read-only research view automatically.</p></div></header>
+  <section class="panel checker-panel">
+    <div class="panel-heading"><div><p class="step">AUTO DETECT</p><h2>Inspect a public address</h2></div><span id="aw-network" class="network-badge">Waiting for address</span></div>
+    <form id="aw-form" novalidate>
+      <label for="aw-address">Public address</label>
+      <div class="input-row"><input id="aw-address" class="mono" autocomplete="off" spellcheck="false" placeholder="0x… / 1… / 3… / bc1…" required><button id="aw-paste" class="secondary" type="button">Paste</button></div>
+      <p class="field-help">Public-chain research only. No seed phrase, private key, signing or transaction-broadcast functionality.</p>
+      <div class="actions"><button class="primary" type="submit">Open address intelligence</button><button id="aw-clear" class="secondary" type="button">Clear</button></div>
+    </form>
+    <div id="aw-message" class="message" hidden></div>
+  </section>
+  <section id="aw-results" class="panel history-panel" hidden>
+    <div class="panel-heading history-heading"><div><p class="step">PUBLIC SNAPSHOT</p><h2 id="aw-title">Address intelligence</h2></div><a id="aw-deep" class="secondary" href="#">Open full workspace</a></div>
+    <p id="aw-full" class="mono address-output"></p>
+    <div id="aw-metrics" class="metric-grid"></div>
+    <div id="aw-detail" class="table-wrap" style="margin-top:18px"></div>
+  </section>
+</main>
+<script src="/site-pages.js" defer></script>
+<script src="/global-ui.js" defer></script>
+<script src="/user-shell.js" defer></script>
+<script src="/address-workspace.js" defer></script>
+</body>
+</html>
