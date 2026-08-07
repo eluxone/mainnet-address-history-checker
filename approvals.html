@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>EVM Approval Research</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/global-2026.css">
+</head>
+<body>
+<main class="shell">
+  <header class="hero"><div class="brand-mark" aria-hidden="true">✓</div><div><p class="eyebrow">READ-ONLY EVM SECURITY RESEARCH</p><h1>Approval Research</h1><p class="subtitle">Research public ERC-20 allowances and NFT approvals across Ethereum, Base and OP Mainnet. No wallet connection, signing or transaction execution.</p></div></header>
+  <section class="panel warning-panel"><p class="step">PUBLIC DATA ONLY</p><h2>Research, not a guarantee</h2><p>The selected historical block window may not contain older approval events. Current-state checks validate discovered approvals where the contract supports the expected standard call. Unknown results are never treated as active.</p></section>
+  <section class="panel checker-panel">
+    <form id="ap-form" novalidate>
+      <div class="form-grid two-columns"><div><label for="ap-address">Public EVM address</label><input id="ap-address" class="mono" placeholder="0x…" maxlength="42" required></div><div><label for="ap-lookback">Historical window</label><select id="ap-lookback"><option value="100000">Last 100,000 blocks</option><option value="500000" selected>Last 500,000 blocks</option><option value="1000000">Last 1,000,000 blocks</option><option value="2000000">Last 2,000,000 blocks</option></select></div></div>
+      <div class="actions"><button class="primary" type="submit">Research approvals</button><button id="ap-clear" class="secondary" type="button">Clear</button></div>
+    </form>
+    <div id="ap-message" class="message" hidden></div>
+  </section>
+  <section id="ap-results" class="panel history-panel" hidden>
+    <div class="panel-heading history-heading"><div><p class="step">APPROVAL STATE</p><h2>Public approval research</h2></div><span id="ap-checked" class="network-badge">—</span></div>
+    <div id="ap-metrics" class="metric-grid"></div>
+    <div class="table-wrap" style="margin-top:18px"><table><thead><tr><th>Network</th><th>Type</th><th>Contract</th><th>Spender / operator</th><th>Current state</th><th>Current value</th><th>Risk marker</th><th>Transaction</th></tr></thead><tbody id="ap-body"></tbody></table></div>
+  </section>
+</main>
+<script src="/site-pages.js" defer></script>
+<script src="/global-ui.js" defer></script>
+<script src="/user-shell.js" defer></script>
+<script src="/approvals.js" defer></script>
+</body>
+</html>
