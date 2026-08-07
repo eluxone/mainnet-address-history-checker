@@ -1,0 +1,117 @@
+name: Strict A-Z browser QA certification
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  certify:
+    if: github.event.issue.title == '[QA-CERTIFY] Full A-Z browser test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      QA_BASE_URL: http://127.0.0.1:4173
+      QA_PRODUCTION_URL: https://portofele.vercel.app
+      QA_USERNAME: ${{ secrets.QA_USERNAME }}
+      QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Start local application server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/chainlab-qa-http.log 2>&1 &
+          echo $! > /tmp/chainlab-qa-http.pid
+          for attempt in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/login.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/chainlab-qa-http.log
+          exit 1
+
+      - name: Run desktop and phone browser suite
+        run: node qa/full-browser-qa.mjs
+
+      - name: Enforce zero browser failures
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('qa/full-browser-qa-report.json', 'utf8'));
+          const tests = Array.isArray(report.tests) ? report.tests : Array.isArray(report.results) ? report.results : [];
+          const summary = report.summary || {};
+          const failed = Number(summary.failed ?? report.failed ?? tests.filter((test) => test.status === 'failed' || test.ok === false || test.passed === false).length);
+          if (!Number.isFinite(failed) || failed !== 0) {
+            console.error(`Browser certification blocked: ${failed} failed test(s).`);
+            process.exit(1);
+          }
+          const passed = Number(summary.passed ?? report.passed ?? tests.filter((test) => test.status === 'passed' || test.ok === true || test.passed === true).length);
+          const skipped = Number(summary.skipped ?? report.skipped ?? tests.filter((test) => test.status === 'skipped').length);
+          fs.writeFileSync('/tmp/qa-counts.json', JSON.stringify({ passed, failed, skipped }));
+          NODE
+
+      - name: Write browser certification
+        run: |
+          COUNTS="$(cat /tmp/qa-counts.json)"
+          AUTH_MODE="local mocked authenticated flows plus production public/unauthenticated flows"
+          if [ -n "$QA_USERNAME" ] && [ -n "$QA_PASSWORD" ]; then
+            AUTH_MODE="local mocked flows plus authenticated and public production flows"
+          fi
+          cat > qa/full-browser-certified.md <<EOF
+          # CHAIN//LAB Full Browser QA Certification
+
+          - Result: **PASS**
+          - Commit tested: \`${GITHUB_SHA}\`
+          - Tested at: \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
+          - Desktop viewport: \`1440 × 1000\`
+          - Phone viewport: \`390 × 844\`
+          - Counts: \`${COUNTS}\`
+          - Production target: \`${QA_PRODUCTION_URL}\`
+          - Authentication coverage: ${AUTH_MODE}
+
+          The certification workflow only writes this file after the Playwright suite completes and the generated report contains zero failed tests.
+          EOF
+
+      - name: Upload complete QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chainlab-full-browser-qa-${{ github.run_id }}
+          path: |
+            qa/full-browser-qa-report.json
+            qa/full-browser-qa-summary.md
+            qa/full-browser-certified.md
+            qa/artifacts/**
+            qa/browser-output/**
+            /tmp/chainlab-qa-http.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit passing certification
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add qa/full-browser-qa-report.json qa/full-browser-qa-summary.md qa/full-browser-certified.md
+          git diff --cached --quiet || git commit -m "Certify full desktop and mobile browser QA"
+          git push
+
+      - name: Comment certification result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body-file qa/full-browser-certified.md
