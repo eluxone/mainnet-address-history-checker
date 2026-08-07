@@ -1,51 +1,141 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
-    { "source": "/recover", "destination": "/recovery-assistant.html", "permanent": false },
-    { "source": "/btc", "destination": "/btc-discovery.html", "permanent": false }
+    {
+      "source": "/recover",
+      "destination": "/recovery-assistant.html",
+      "permanent": false
+    },
+    {
+      "source": "/btc",
+      "destination": "/btc-discovery.html",
+      "permanent": false
+    }
   ],
   "crons": [
-    { "path": "/api/btc-watchlist-cron", "schedule": "15 5 * * *" }
+    {
+      "path": "/api/btc-watchlist-cron",
+      "schedule": "15 5 * * *"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'" },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()" }
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        }
       ]
     },
     {
       "source": "/recovery-assistant.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, max-age=0" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'"
+        }
       ]
     },
-    { "source": "/btc-discovery.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] },
-    { "source": "/btc-research.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] },
-    { "source": "/login.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] }
+    {
+      "source": "/btc-discovery.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/btc-research.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/login.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
   ],
   "functions": {
-    "api/check-address.mjs": { "maxDuration": 30 },
-    "api/audit-addresses.mjs": { "maxDuration": 30 },
-    "api/btc-discovery.mjs": { "maxDuration": 300 },
-    "api/btc-discovery-v2.mjs": { "maxDuration": 300 },
-    "api/btc-discovery-v3.mjs": { "maxDuration": 300 },
-    "api/btc-preview.mjs": { "maxDuration": 30 },
-    "api/btc-inspect.mjs": { "maxDuration": 30 },
-    "api/btc-saved-searches.mjs": { "maxDuration": 30 },
-    "api/btc-watchlist.mjs": { "maxDuration": 60 },
-    "api/btc-index.mjs": { "maxDuration": 30 },
-    "api/btc-analytics.mjs": { "maxDuration": 30 },
-    "api/btc-research.mjs": { "maxDuration": 30 },
-    "api/btc-watchlist-cron.mjs": { "maxDuration": 60 },
-    "api/btc-background-jobs.mjs": { "maxDuration": 30 },
+    "api/check-address.mjs": {
+      "maxDuration": 30
+    },
+    "api/audit-addresses.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-discovery.mjs": {
+      "maxDuration": 300
+    },
+    "api/btc-discovery-v2.mjs": {
+      "maxDuration": 300
+    },
+    "api/btc-discovery-v3.mjs": {
+      "maxDuration": 300
+    },
+    "api/btc-preview.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-inspect.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-saved-searches.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-watchlist.mjs": {
+      "maxDuration": 60
+    },
+    "api/btc-index.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-analytics.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-research.mjs": {
+      "maxDuration": 30
+    },
+    "api/btc-watchlist-cron.mjs": {
+      "maxDuration": 60
+    },
+    "api/btc-background-jobs.mjs": {
+      "maxDuration": 30
+    },
     "api/btc-background-worker.mjs": {
       "maxDuration": 300,
       "experimentalTriggers": [
@@ -57,6 +147,22 @@
         }
       ]
     },
-    "api/login.mjs": { "maxDuration": 10 }
+    "api/login.mjs": {
+      "maxDuration": 10
+    },
+    "api/evm-background-jobs.mjs": {
+      "maxDuration": 30
+    },
+    "api/evm-background-worker.mjs": {
+      "maxDuration": 300,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "evm-background-audit",
+          "retryAfterSeconds": 60,
+          "initialDelaySeconds": 0
+        }
+      ]
+    }
   }
 }
