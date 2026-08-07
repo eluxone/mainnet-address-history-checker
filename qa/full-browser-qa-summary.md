@@ -1,6 +1,6 @@
 # CHAIN//LAB full browser QA
 
-- Finished: 2026-08-07T15:28:52.134Z
+- Finished: 2026-08-07T15:38:54.840Z
 - Passed: 31
 - Failed: 19
 - Skipped: 1
@@ -24,7 +24,7 @@
 - **local-mobile / login renders without browser errors:** Error: login: mobile drawer is outside viewport
 - **local-interaction / advanced recovery self-tests and exact known-address recovery:** page.waitForFunction: Timeout 20000ms exceeded.
 - **local-interaction / guided seed recovery exact ETH match and sensitive-data clearing:** page.waitForSelector: Timeout 30000ms exceeded.
-- **production-public / production login and intro render on desktop:** Error: Production desktop login problems: console: Refused to execute script from 'https://portofele.vercel.app/login.html?next=%2Fuser-shell.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled. | console: Refused to apply style from 'https://portofele.vercel.app/login.html?next=%2Fresponsive-2026-fixes.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled.
+- **production-public / production login and intro render on desktop:** Error: Production desktop login problems: console: Refused to apply style from 'https://portofele.vercel.app/login.html?next=%2Fresponsive-2026-fixes.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. | console: Refused to execute script from 'https://portofele.vercel.app/login.html?next=%2Fuser-shell.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled.
 - **production-public / production login and intro render on mobile:** Error: production-login: mobile drawer is outside viewport
 
 ## Skipped
