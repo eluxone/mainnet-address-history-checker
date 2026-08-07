@@ -1,17 +1,18 @@
 {
   "name": "mainnet-address-history-checker",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "check": "node --check api/check-address.mjs && node --check api/audit-addresses.mjs && node --check api/login.mjs && node --check app.js && node --check recovery.js && node --check recovery-assistant.js && node --check login.js && node --check middleware.js && node --check scripts/copy-vendor.mjs",
+    "check": "node --check api/check-address.mjs && node --check api/audit-addresses.mjs && node --check api/login.mjs && node --check api/btc-background-jobs.mjs && node --check api/btc-background-worker.mjs && node --check app.js && node --check recovery.js && node --check recovery-assistant.js && node --check login.js && node --check middleware.js && node --check scripts/copy-vendor.mjs",
     "vercel-build": "node scripts/copy-vendor.mjs",
     "dev": "vercel dev"
   },
   "dependencies": {
+    "@vercel/queue": "^0.1.6",
     "ethers": "6.15.0"
   }
 }
