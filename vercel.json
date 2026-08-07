@@ -45,6 +45,18 @@
     "api/btc-analytics.mjs": { "maxDuration": 30 },
     "api/btc-research.mjs": { "maxDuration": 30 },
     "api/btc-watchlist-cron.mjs": { "maxDuration": 60 },
+    "api/btc-background-jobs.mjs": { "maxDuration": 30 },
+    "api/btc-background-worker.mjs": {
+      "maxDuration": 300,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "btc-background-scan",
+          "retryAfterSeconds": 60,
+          "initialDelaySeconds": 0
+        }
+      ]
+    },
     "api/login.mjs": { "maxDuration": 10 }
   }
 }
