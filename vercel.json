@@ -4,6 +4,9 @@
     { "source": "/recover", "destination": "/recovery-assistant.html", "permanent": false },
     { "source": "/btc", "destination": "/btc-discovery.html", "permanent": false }
   ],
+  "crons": [
+    { "path": "/api/btc-watchlist-cron", "schedule": "15 5 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -25,6 +28,7 @@
       ]
     },
     { "source": "/btc-discovery.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] },
+    { "source": "/btc-research.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] },
     { "source": "/login.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] }
   ],
   "functions": {
@@ -37,6 +41,10 @@
     "api/btc-inspect.mjs": { "maxDuration": 30 },
     "api/btc-saved-searches.mjs": { "maxDuration": 30 },
     "api/btc-watchlist.mjs": { "maxDuration": 60 },
+    "api/btc-index.mjs": { "maxDuration": 30 },
+    "api/btc-analytics.mjs": { "maxDuration": 30 },
+    "api/btc-research.mjs": { "maxDuration": 30 },
+    "api/btc-watchlist-cron.mjs": { "maxDuration": 60 },
     "api/login.mjs": { "maxDuration": 10 }
   }
 }
