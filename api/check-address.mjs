@@ -1,3 +1,4 @@
+import { authorizeSessionOrApp } from './_auth.mjs';
 import crypto from "node:crypto";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;

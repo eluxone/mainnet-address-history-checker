@@ -1,3 +1,4 @@
+import { authorizeSessionOrApp } from './_auth.mjs';
 import crypto from "node:crypto";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -230,11 +231,7 @@ export default async function handler(request, response) {
   }
   const apiKey = process.env.ALCHEMY_API_KEY;
   if (!apiKey) return send(response, 500, { error: "ALCHEMY_API_KEY is missing." });
-  const token = process.env.APP_ACCESS_TOKEN;
-  if (!token) return send(response, 503, { error: "Recovery auditing requires APP_ACCESS_TOKEN." });
-  if (!safeTokenEqual(request.headers["x-app-access-token"], token)) {
-    return send(response, 401, { error: "Incorrect or missing app passcode." });
-  }
+  try{await authorizeSessionOrApp(request)}catch(e){return send(response,e.status||401,{error:e.message||'Authentication required.'})}
 
   let body;
   try {

@@ -1,3 +1,4 @@
+import { authorizeSessionOrApp } from './_auth.mjs';
 function send(res,status,payload){res.setHeader('Cache-Control','no-store,max-age=0');res.setHeader('Content-Type','application/json; charset=utf-8');return res.status(status).json(payload)}
 function safeEqual(a,b){if(typeof a!=='string'||typeof b!=='string')return false;const x=Buffer.from(a),y=Buffer.from(b);if(x.length!==y.length)return false;return crypto.timingSafeEqual(x,y)}
 import crypto from 'node:crypto';

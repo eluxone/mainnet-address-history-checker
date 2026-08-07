@@ -331,9 +331,6 @@
       if (!ownershipInput.checked) {
         throw new Error('Confirm that you own or are authorized to recover this phrase.');
       }
-      if (!recoveryAccessToken.value) {
-        throw new Error('Enter the private APP_ACCESS_TOKEN configured in Vercel.');
-      }
 
       const phrase = normalizePhrase(phraseInput.value);
       if (!window.ethers.Mnemonic.isValidMnemonic(phrase)) {

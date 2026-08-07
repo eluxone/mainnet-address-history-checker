@@ -1,3 +1,4 @@
+import { authorizeSessionOrApp } from './_auth.mjs';
 import crypto from 'node:crypto';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -255,9 +256,8 @@ export default async function handler(request, response) {
     return send(response, 405, { error: 'Method not allowed.' });
   }
 
-  const expected = process.env.APP_ACCESS_TOKEN;
-  if (expected && !safeTokenEqual(request.headers['x-app-access-token'], expected)) {
-    return send(response, 401, { error: 'Incorrect or missing app passcode.' });
+  try { await authorizeSessionOrApp(request); } catch (error) {
+    return send(response, error.status || 401, { error: error.message || 'Authentication required.' });
   }
 
   const supabase = parseSupabase();
