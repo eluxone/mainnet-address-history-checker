@@ -2,11 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     { "source": "/", "destination": "/dashboard.html" },
-    { "source": "/evm", "destination": "/index.html" }
+    { "source": "/evm", "destination": "/index.html" },
+    { "source": "/advanced-recovery", "destination": "/advanced-recovery.html" }
   ],
   "redirects": [
     { "source": "/recover", "destination": "/recovery-assistant.html", "permanent": false },
-    { "source": "/advanced-recovery", "destination": "/advanced-recovery.html", "permanent": false },
     { "source": "/btc", "destination": "/btc-discovery.html", "permanent": false }
   ],
   "crons": [{ "path": "/api/btc-watchlist-cron", "schedule": "15 5 * * *" }],
@@ -22,6 +22,7 @@
     ]},
     { "source": "/recovery-assistant.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" },{ "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'" }]},
     { "source": "/advanced-recovery.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" },{ "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'" }]},
+    { "source": "/advanced-recovery", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" },{ "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'" }]},
     { "source": "/btc-discovery.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }]},
     { "source": "/btc-research.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }]},
     { "source": "/dashboard.html", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }]},
