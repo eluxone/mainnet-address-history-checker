@@ -1,0 +1,155 @@
+name: Diagnostic A-Z browser QA certification
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: chainlab-browser-qa
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    if: github.event.issue.title == '[QA-CERTIFY-V2] Full A-Z browser test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      QA_BASE_URL: http://127.0.0.1:4173
+      QA_PRODUCTION_URL: https://portofele.vercel.app
+      QA_USERNAME: ${{ secrets.QA_USERNAME }}
+      QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Start local application server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/chainlab-qa-http.log 2>&1 &
+          echo $! > /tmp/chainlab-qa-http.pid
+          for attempt in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/login.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/chainlab-qa-http.log
+          exit 1
+
+      - name: Run desktop and phone browser suite
+        id: browser
+        continue-on-error: true
+        run: node qa/full-browser-qa.mjs
+
+      - name: Build diagnostic status
+        id: status
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'qa/full-browser-qa-report.json';
+          let report = {};
+          if (fs.existsSync(path)) {
+            try { report = JSON.parse(fs.readFileSync(path, 'utf8')); } catch (error) { report = { parseError: error.message }; }
+          }
+          const tests = Array.isArray(report.tests) ? report.tests : Array.isArray(report.results) ? report.results : [];
+          const summary = report.summary || {};
+          const isFailed = test => test?.status === 'failed' || test?.ok === false || test?.passed === false;
+          const isPassed = test => test?.status === 'passed' || test?.ok === true || test?.passed === true;
+          const isSkipped = test => test?.status === 'skipped';
+          const failures = tests.filter(isFailed);
+          let failed = Number(summary.failed ?? report.failed ?? failures.length);
+          let passed = Number(summary.passed ?? report.passed ?? tests.filter(isPassed).length);
+          let skipped = Number(summary.skipped ?? report.skipped ?? tests.filter(isSkipped).length);
+          if (!Number.isFinite(failed)) failed = failures.length;
+          if (!Number.isFinite(passed)) passed = tests.filter(isPassed).length;
+          if (!Number.isFinite(skipped)) skipped = tests.filter(isSkipped).length;
+          const pass = fs.existsSync(path) && failed === 0 && process.env.BROWSER_STEP === 'success';
+          const auth = process.env.QA_USERNAME && process.env.QA_PASSWORD
+            ? 'Authenticated production coverage enabled.'
+            : 'Production authenticated checks skipped because QA_USERNAME/QA_PASSWORD repository secrets are not configured; local authenticated flows and production public/unauthenticated flows were tested.';
+          const lines = [
+            '# CHAIN//LAB A-Z Browser QA Status',
+            '',
+            `- Result: **${pass ? 'PASS' : 'FAIL'}**`,
+            `- Commit tested: \`${process.env.GITHUB_SHA}\``,
+            `- Tested at: \`${new Date().toISOString()}\``,
+            '- Desktop viewport: `1440 × 1000`',
+            '- Phone viewport: `390 × 844`',
+            `- Passed: **${passed}**`,
+            `- Failed: **${failed}**`,
+            `- Skipped: **${skipped}**`,
+            `- Production target: \`${process.env.QA_PRODUCTION_URL}\``,
+            `- Authentication: ${auth}`,
+            '',
+            '## Failed checks',
+            ''
+          ];
+          if (!failures.length && !pass) {
+            lines.push('- Browser runner did not complete successfully or did not produce a valid report.');
+            if (report.parseError) lines.push(`- Report parse error: ${report.parseError}`);
+          } else if (!failures.length) {
+            lines.push('- None.');
+          } else {
+            for (const test of failures.slice(0, 100)) {
+              const name = test.name || test.test || test.title || 'Unnamed check';
+              const error = test.error || test.message || test.details || '';
+              lines.push(`- **${String(name).replaceAll('\n',' ')}**${error ? ` — ${String(error).replaceAll('\n',' ').slice(0, 500)}` : ''}`);
+            }
+          }
+          lines.push('', 'Certification is granted only when the browser step succeeds and the generated report contains zero failed tests.', '');
+          fs.writeFileSync('qa/full-browser-status.md', lines.join('\n'));
+          fs.writeFileSync('/tmp/qa-pass.txt', pass ? '1' : '0');
+          NODE
+        env:
+          BROWSER_STEP: ${{ steps.browser.outcome }}
+
+      - name: Upload complete QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chainlab-full-browser-qa-${{ github.run_id }}
+          path: |
+            qa/full-browser-qa-report.json
+            qa/full-browser-qa-summary.md
+            qa/full-browser-status.md
+            qa/artifacts/**
+            qa/browser-output/**
+            /tmp/chainlab-qa-http.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit diagnostic status and report
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add qa/full-browser-status.md
+          test -f qa/full-browser-qa-report.json && git add qa/full-browser-qa-report.json || true
+          test -f qa/full-browser-qa-summary.md && git add qa/full-browser-qa-summary.md || true
+          git diff --cached --quiet || git commit -m "Record full desktop and mobile browser QA status"
+          git push
+
+      - name: Comment exact result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment "${{ github.event.issue.number }}" --body-file qa/full-browser-status.md
+
+      - name: Enforce certification gate
+        if: always()
+        run: |
+          test "$(cat /tmp/qa-pass.txt 2>/dev/null || echo 0)" = "1"
