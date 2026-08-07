@@ -1,0 +1,17 @@
+'use strict';
+(()=>{
+  const $=s=>document.querySelector(s),type=$('#ex-type'),item=$('#ex-item'),status=$('#ex-status');let catalog={};
+  async function req(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||`Request failed (${r.status})`);return d}
+  function rowsFor(t){if(t==='btc_job')return(catalog.btcJobs||[]).map(x=>({value:x.id,label:`${x.name} · ${x.status} · ${x.matched_count||0} matches`}));if(t==='evm_job')return(catalog.evmJobs||[]).map(x=>({value:x.id,label:`${x.name} · ${x.status} · ${x.matched_count||0} matches`}));if(t==='saved_search')return(catalog.savedSearches||[]).map(x=>({value:x.id,label:`${x.name} · ${x.status}`}));return[{value:'all',label:t==='watchlist'?'Complete watchlist':t==='research_notes'?'All research notes':'Activity history'}]}
+  function refreshItems(){const rows=rowsFor(type.value);item.innerHTML=rows.length?rows.map(x=>`<option value="${x.value}">${escapeHtml(x.label)}</option>`).join(''):'<option value="">No records available</option>';item.disabled=!rows.length}
+  async function load(){try{const d=await req('/api/export-center');catalog=d.catalog||{};$('#ex-role').textContent=d.role==='admin'?'Administrator export':'Personal export';refreshItems();status.textContent='Export catalog ready.'}catch(e){status.textContent=e.message}}
+  function safeName(v){return String(v||'chainlab-export').toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)||'chainlab-export'}
+  function download(name,mime,text){const blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();URL.revokeObjectURL(url)}
+  function exportRows(data){if(Array.isArray(data))return data;if(data&&Array.isArray(data.results))return data.results;return data==null?[]:[data]}
+  function flat(v){if(v==null)return'';if(typeof v==='object')return JSON.stringify(v);return String(v)}
+  function csv(data){const rows=exportRows(data);if(!rows.length)return'No data\n';const keys=[...new Set(rows.flatMap(r=>Object.keys(r||{})))];const q=v=>`"${flat(v).replaceAll('"','""')}"`;return[keys.map(q).join(','),...rows.map(r=>keys.map(k=>q(r?.[k])).join(','))].join('\n')}
+  async function getExport(){const t=type.value,id=['btc_job','evm_job','saved_search'].includes(t)?item.value:'';if(['btc_job','evm_job','saved_search'].includes(t)&&!id)throw new Error('Choose a record first.');return req(`/api/export-center?type=${encodeURIComponent(t)}${id?`&id=${encodeURIComponent(id)}`:''}`)}
+  $('#ex-json').onclick=async()=>{try{status.textContent='Preparing JSON…';const d=await getExport();download(`${safeName(d.label)}-${new Date().toISOString().slice(0,10)}.json`,'application/json',JSON.stringify({exportedAt:d.exportedAt,type:d.type,data:d.data},null,2));status.textContent='JSON export created.'}catch(e){status.textContent=e.message}};
+  $('#ex-csv').onclick=async()=>{try{status.textContent='Preparing CSV…';const d=await getExport();download(`${safeName(d.label)}-${new Date().toISOString().slice(0,10)}.csv`,'text/csv;charset=utf-8',csv(d.data));status.textContent='CSV export created.'}catch(e){status.textContent=e.message}};
+  type.onchange=refreshItems;$('#ex-refresh').onclick=load;function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}load();
+})();
