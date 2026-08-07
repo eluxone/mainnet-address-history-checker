@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-08-07T14:51:21.158Z",
+  "startedAt": "2026-08-07T15:10:27.024Z",
   "productionBase": "https://portofele.vercel.app",
   "localBase": "http://127.0.0.1:4173",
   "authenticatedProductionConfigured": false,
@@ -8,7 +8,7 @@
       "name": "dashboard renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1311,
+      "durationMs": 1477,
       "detail": {
         "screenshot": "local-desktop-dashboard.png"
       }
@@ -17,7 +17,7 @@
       "name": "evm-auditor renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1468,
+      "durationMs": 1773,
       "detail": {
         "screenshot": "local-desktop-evm-auditor.png"
       }
@@ -26,7 +26,7 @@
       "name": "btc-discovery renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1710,
+      "durationMs": 1734,
       "detail": {
         "screenshot": "local-desktop-btc-discovery.png"
       }
@@ -35,7 +35,7 @@
       "name": "address-workspace renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1018,
+      "durationMs": 997,
       "detail": {
         "screenshot": "local-desktop-address-workspace.png"
       }
@@ -44,7 +44,7 @@
       "name": "jobs renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 971,
+      "durationMs": 984,
       "detail": {
         "screenshot": "local-desktop-jobs.png"
       }
@@ -53,7 +53,7 @@
       "name": "notifications renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 993,
+      "durationMs": 1038,
       "detail": {
         "screenshot": "local-desktop-notifications.png"
       }
@@ -62,7 +62,7 @@
       "name": "approvals renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1043,
+      "durationMs": 1042,
       "detail": {
         "screenshot": "local-desktop-approvals.png"
       }
@@ -71,7 +71,7 @@
       "name": "exports renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1014,
+      "durationMs": 1031,
       "detail": {
         "screenshot": "local-desktop-exports.png"
       }
@@ -80,7 +80,7 @@
       "name": "btc-research renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1017,
+      "durationMs": 1035,
       "detail": {
         "screenshot": "local-desktop-btc-research.png"
       }
@@ -89,21 +89,21 @@
       "name": "seed-recovery renders without browser errors",
       "scope": "local-desktop",
       "status": "failed",
-      "durationMs": 1253,
+      "durationMs": 1282,
       "error": "Error: seed-recovery: runtime problems: http 404: http://127.0.0.1:4173/vendor/ethers.umd.min.js | console: Failed to load resource: the server responded with a status of 404 (File not found) | console: Refused to apply inline style because it violates the following Content Security Policy directive: \"style-src 'self'\". Either the 'unsafe-inline' keyword, a hash ('sha256-VBgwVVLj3YEviJ41YqSKU4P/7zAEl7gisUh5tPkuwa0='), or a nonce ('nonce-...') is required to enable inline execution.\n | console: Refused to apply inline style because it violates the following Content Security Policy directive: \"style-src 'self'\". Either the 'unsafe-inline' keyword, a hash ('sha256-oNet7a0dMy9EwJ+p60GY9wIT716YSsT4PWsKJYnpQQ4='), or a nonce ('nonce-...') is required to enable inline execution.\n | console: Refused to connect to 'http://127.0.0.1:4173/api/me' because it violates the following Content Security Policy directive: \"connect-src 'none'\".\n | console: Fetch API cannot load http://127.0.0.1:4173/api/me. Refused to connect because it violates the document's Content Security Policy.\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:270:9\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "advanced-recovery renders without browser errors",
       "scope": "local-desktop",
       "status": "failed",
-      "durationMs": 1176,
+      "durationMs": 1220,
       "error": "Error: advanced-recovery: runtime problems: http 404: http://127.0.0.1:4173/vendor/ethers.umd.min.js | console: Failed to load resource: the server responded with a status of 404 (File not found) | console: Refused to connect to 'http://127.0.0.1:4173/api/me' because it violates the following Content Security Policy directive: \"connect-src 'none'\".\n | console: Fetch API cannot load http://127.0.0.1:4173/api/me. Refused to connect because it violates the document's Content Security Policy.\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:270:9\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "admin renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 1108,
+      "durationMs": 1153,
       "detail": {
         "screenshot": "local-desktop-admin.png"
       }
@@ -112,7 +112,7 @@
       "name": "login renders without browser errors",
       "scope": "local-desktop",
       "status": "passed",
-      "durationMs": 990,
+      "durationMs": 1021,
       "detail": {
         "screenshot": "local-desktop-login.png"
       }
@@ -121,259 +121,259 @@
       "name": "dashboard renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 736,
+      "durationMs": 747,
       "error": "Error: dashboard: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at runNextTicks (node:internal/process/task_queues:60:5)\n    at process.processImmediate (node:internal/timers:454:9)\n    at process.callbackTrampoline (node:internal/async_hooks:130:17)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)"
     },
     {
       "name": "evm-auditor renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 869,
+      "durationMs": 858,
       "error": "Error: evm-auditor: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "btc-discovery renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 763,
-      "error": "Error: btc-discovery: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at runNextTicks (node:internal/process/task_queues:60:5)\n    at process.processImmediate (node:internal/timers:454:9)\n    at process.callbackTrampoline (node:internal/async_hooks:130:17)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)"
+      "durationMs": 747,
+      "error": "Error: btc-discovery: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "address-workspace renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 705,
+      "durationMs": 722,
       "error": "Error: address-workspace: controls outside viewport: [{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"\",\"rect\":{\"x\":382.515625,\"y\":9,\"width\":46,\"height\":46,\"top\":9,\"right\":428.515625,\"bottom\":55,\"left\":382.515625}}]\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:229:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "jobs renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 696,
+      "durationMs": 689,
       "error": "Error: jobs: controls outside viewport: [{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"\",\"rect\":{\"x\":382.515625,\"y\":9,\"width\":46,\"height\":46,\"top\":9,\"right\":428.515625,\"bottom\":55,\"left\":382.515625}}]\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:229:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "notifications renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 691,
+      "durationMs": 690,
       "error": "Error: notifications: controls outside viewport: [{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"\",\"rect\":{\"x\":382.515625,\"y\":9,\"width\":46,\"height\":46,\"top\":9,\"right\":428.515625,\"bottom\":55,\"left\":382.515625}}]\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:229:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "approvals renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 690,
+      "durationMs": 695,
       "error": "Error: approvals: controls outside viewport: [{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"\",\"rect\":{\"x\":382.515625,\"y\":9,\"width\":46,\"height\":46,\"top\":9,\"right\":428.515625,\"bottom\":55,\"left\":382.515625}}]\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:229:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "exports renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 693,
+      "durationMs": 694,
       "error": "Error: exports: controls outside viewport: [{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"\",\"rect\":{\"x\":382.515625,\"y\":9,\"width\":46,\"height\":46,\"top\":9,\"right\":428.515625,\"bottom\":55,\"left\":382.515625}}]\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:229:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "btc-research renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 725,
+      "durationMs": 709,
       "error": "Error: btc-research: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "seed-recovery renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 749,
+      "durationMs": 751,
       "error": "Error: seed-recovery: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "advanced-recovery renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 765,
-      "error": "Error: advanced-recovery: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at runNextTicks (node:internal/process/task_queues:60:5)\n    at process.processImmediate (node:internal/timers:454:9)\n    at process.callbackTrampoline (node:internal/async_hooks:130:17)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)"
+      "durationMs": 767,
+      "error": "Error: advanced-recovery: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "admin renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 784,
+      "durationMs": 765,
       "error": "Error: admin: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "login renders without browser errors",
       "scope": "local-mobile",
       "status": "failed",
-      "durationMs": 752,
+      "durationMs": 734,
       "error": "Error: login: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:266:11\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:263:26\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalSmoke (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:258:7)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:556:3"
     },
     {
       "name": "advanced recovery self-tests and exact known-address recovery",
       "scope": "local-interaction",
       "status": "failed",
-      "durationMs": 20289,
+      "durationMs": 20335,
       "error": "page.waitForFunction: Timeout 20000ms exceeded.\n    at /home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:285:16\n    at async record (/home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalInteractions (/home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:278:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:557:3"
     },
     {
       "name": "guided seed recovery exact ETH match and sensitive-data clearing",
       "scope": "local-interaction",
       "status": "failed",
-      "durationMs": 33198,
+      "durationMs": 32285,
       "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('#seed-result-panel:not([hidden])') to be visible\n\n    at /home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:323:16\n    at async record (/home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runLocalInteractions (/home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:309:3)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:557:3"
     },
     {
       "name": "cross-chain workspace loads BTC and EVM fixtures",
       "scope": "local-interaction",
       "status": "passed",
-      "durationMs": 1118,
+      "durationMs": 1684,
       "detail": null
     },
     {
       "name": "admin can create a user and receive a generated password",
       "scope": "local-interaction",
       "status": "passed",
-      "durationMs": 635,
+      "durationMs": 607,
       "detail": null
     },
     {
       "name": "notification actions update unread state",
       "scope": "local-interaction",
       "status": "passed",
-      "durationMs": 656,
+      "durationMs": 777,
       "detail": null
     },
     {
       "name": "job manager pause action persists in client view",
       "scope": "local-interaction",
       "status": "passed",
-      "durationMs": 823,
+      "durationMs": 899,
       "detail": null
     },
     {
       "name": "export center produces a JSON download",
       "scope": "local-interaction",
       "status": "passed",
-      "durationMs": 480,
+      "durationMs": 547,
       "detail": null
     },
     {
       "name": "approval research renders a current-state result",
       "scope": "local-interaction",
       "status": "passed",
-      "durationMs": 570,
+      "durationMs": 580,
       "detail": null
     },
     {
       "name": "production login endpoint reports configured service",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 208,
+      "durationMs": 361,
       "detail": null
     },
     {
       "name": "production security headers and logo asset are valid",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 209,
+      "durationMs": 339,
       "detail": null
     },
     {
       "name": "/ redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 331,
+      "durationMs": 666,
       "detail": null
     },
     {
       "name": "/evm redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 234,
+      "durationMs": 300,
       "detail": null
     },
     {
       "name": "/btc redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 232,
+      "durationMs": 413,
       "detail": null
     },
     {
       "name": "/address-workspace.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 184,
+      "durationMs": 491,
       "detail": null
     },
     {
       "name": "/jobs.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 187,
+      "durationMs": 333,
       "detail": null
     },
     {
       "name": "/notifications.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 286,
+      "durationMs": 300,
       "detail": null
     },
     {
       "name": "/approvals.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 184,
+      "durationMs": 333,
       "detail": null
     },
     {
       "name": "/exports.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 202,
+      "durationMs": 311,
       "detail": null
     },
     {
       "name": "/btc-research.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 167,
+      "durationMs": 344,
       "detail": null
     },
     {
       "name": "/recover redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 188,
+      "durationMs": 342,
       "detail": null
     },
     {
       "name": "/advanced-recovery redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 170,
+      "durationMs": 391,
       "detail": null
     },
     {
       "name": "/admin.html redirects unauthenticated visitors to login",
       "scope": "production-public",
       "status": "passed",
-      "durationMs": 175,
+      "durationMs": 315,
       "detail": null
     },
     {
       "name": "production login and intro render on desktop",
       "scope": "production-public",
       "status": "failed",
-      "durationMs": 3324,
-      "error": "Error: Production desktop login problems: console: Refused to apply style from 'https://portofele.vercel.app/login.html?next=%2Fresponsive-2026-fixes.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. | console: Refused to execute script from 'https://portofele.vercel.app/login.html?next=%2Fuser-shell.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled.\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:479:7\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runProductionPublic (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:461:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:558:3"
+      "durationMs": 3458,
+      "error": "Error: Production desktop login problems: console: Refused to execute script from 'https://portofele.vercel.app/login.html?next=%2Fuser-shell.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled. | console: Refused to apply style from 'https://portofele.vercel.app/login.html?next=%2Fresponsive-2026-fixes.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled.\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:479:7\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runProductionPublic (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:461:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:558:3"
     },
     {
       "name": "production login and intro render on mobile",
       "scope": "production-public",
       "status": "failed",
-      "durationMs": 2578,
+      "durationMs": 2562,
       "error": "Error: production-login: mobile drawer is outside viewport\n    at expect (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:70:25)\n    at assertCommonLayout (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:243:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:473:9\n    at async collectRuntimeProblems (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:190:9)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:464:24\n    at async record (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:55:20)\n    at async runProductionPublic (file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:461:5)\n    at async file:///home/runner/work/mainnet-address-history-checker/mainnet-address-history-checker/qa/full-browser-qa.mjs:558:3"
     },
     {
@@ -384,7 +384,7 @@
       "reason": "QA_USERNAME and QA_PASSWORD repository secrets are not configured"
     }
   ],
-  "finishedAt": "2026-08-07T14:52:54.006Z",
+  "finishedAt": "2026-08-07T15:12:01.932Z",
   "summary": {
     "passed": 31,
     "failed": 19,
