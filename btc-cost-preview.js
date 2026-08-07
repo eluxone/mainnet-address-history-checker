@@ -1,12 +1,22 @@
 'use strict';
 (()=>{
   if(document.querySelector('script[data-btc-features]')) return;
+  const loadBackground=()=>{
+    if(document.querySelector('script[data-btc-background]')) return;
+    const b=document.createElement('script');
+    b.src='/btc-background.js';
+    b.defer=true;
+    b.dataset.btcBackground='1';
+    document.head.appendChild(b);
+  };
   const loadExtended=()=>{
-    if(document.querySelector('script[data-btc-features-extended]')) return;
+    if(document.querySelector('script[data-btc-features-extended]')) return loadBackground();
     const x=document.createElement('script');
     x.src='/btc-features-8-12.js';
     x.defer=true;
     x.dataset.btcFeaturesExtended='1';
+    x.addEventListener('load',loadBackground,{once:true});
+    x.addEventListener('error',loadBackground,{once:true});
     document.head.appendChild(x);
   };
   const loadFeatures=()=>{
