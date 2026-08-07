@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+  <title>Advanced Recovery Workbench</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/recovery-assistant.css">
+  <link rel="stylesheet" href="/global-2026.css">
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div class="brand-mark" aria-hidden="true">↺</div>
+    <div><p class="eyebrow">OWNER-AUTHORIZED · LOCAL ONLY</p><h1>Advanced Recovery Workbench</h1><p class="subtitle">Recover a BIP-39 phrase you own by matching locally derived BTC or ETH addresses against a public address you already know.</p></div>
+  </header>
+
+  <section class="panel warning-panel">
+    <p class="step">SECURITY BOUNDARY</p><h2>Your recovery secret stays in this browser</h2>
+    <p>Mnemonic candidates and the optional BIP-39 passphrase are processed locally. This page has no network access. Only use it for a wallet you own or are authorized to recover.</p>
+  </section>
+
+  <section class="panel checker-panel">
+    <div class="panel-heading"><div><p class="step">RECOVERY TARGET</p><h2>Known-address verification</h2></div><span class="network-badge">Exact public-address match required</span></div>
+    <form id="ar-form" novalidate>
+      <div class="form-grid three-columns">
+        <div><label for="ar-chain">Chain / address profile</label><select id="ar-chain"><option value="btc44">BTC Legacy · BIP44</option><option value="btc49">BTC Nested SegWit · BIP49</option><option value="btc84" selected>BTC Native SegWit · BIP84</option><option value="eth44">ETH Standard · BIP44</option><option value="eth-ledger-live">ETH Ledger Live</option><option value="eth-ledger-legacy">ETH Legacy Ledger</option></select></div>
+        <div><label for="ar-word-count">Phrase length</label><select id="ar-word-count"><option>12</option><option>15</option><option>18</option><option>21</option><option>24</option></select></div>
+        <div><label for="ar-mode">Recovery mode</label><select id="ar-mode"><option value="missing-one">One missing word</option><option value="incorrect-one">One incorrect word</option><option value="guided-two">Two exact positions · guided shortlist</option></select></div>
+      </div>
+
+      <div id="ar-word-grid" class="word-grid" aria-label="BIP-39 recovery word positions"></div>
+
+      <div id="ar-incorrect-wrap" class="form-grid two-columns" hidden>
+        <div><label for="ar-position-one">First position</label><select id="ar-position-one"></select></div>
+        <div id="ar-position-two-wrap" hidden><label for="ar-position-two">Second position</label><select id="ar-position-two"></select></div>
+      </div>
+
+      <div id="ar-guided-wrap" class="long-search-warning" hidden>
+        <p><strong>Guided two-position mode:</strong> provide remembered candidate words for each exact position. Each list is limited to 32 BIP-39 words.</p>
+        <div class="form-grid two-columns"><div><label for="ar-list-one">Candidates for first position</label><textarea id="ar-list-one" rows="4" autocomplete="off" spellcheck="false"></textarea></div><div><label for="ar-list-two">Candidates for second position</label><textarea id="ar-list-two" rows="4" autocomplete="off" spellcheck="false"></textarea></div></div>
+      </div>
+
+      <label for="ar-target">Known public address from this wallet</label>
+      <input id="ar-target" class="mono" autocomplete="off" spellcheck="false" placeholder="BTC address or 0x…" required>
+
+      <div class="form-grid three-columns">
+        <div><label for="ar-account-start">Account start</label><input id="ar-account-start" type="number" min="0" max="100" value="0"></div>
+        <div><label for="ar-account-count">Accounts</label><input id="ar-account-count" type="number" min="1" max="25" value="3"></div>
+        <div><label for="ar-index-count">Addresses per account</label><input id="ar-index-count" type="number" min="1" max="100" value="20"></div>
+      </div>
+
+      <label for="ar-passphrase">Optional BIP-39 passphrase</label><input id="ar-passphrase" type="password" autocomplete="off" spellcheck="false" placeholder="Leave blank unless the original wallet used one">
+      <label class="check-row"><input id="ar-ownership" type="checkbox" required><span>I confirm this wallet belongs to me or I am authorized to recover it.</span></label>
+      <div class="actions"><button id="ar-start" class="primary" type="submit">Start local recovery</button><button id="ar-stop" class="secondary" type="button" disabled>Stop</button><button id="ar-clear" class="secondary" type="button">Clear sensitive data</button><button id="ar-tests" class="secondary" type="button">Run derivation self-tests</button></div>
+    </form>
+    <div id="ar-message" class="message" hidden></div>
+  </section>
+
+  <section id="ar-progress-panel" class="panel progress-panel" hidden>
+    <div class="status-line"><div><p class="step">LOCAL SEARCH</p><h2 id="ar-status">Preparing…</h2></div><span id="ar-progress-label" class="status-pill">0 / 0</span></div>
+    <progress id="ar-progress" max="100" value="0"></progress>
+    <div class="metric-grid"><article class="metric-card"><p>Candidates tested</p><strong id="ar-tested">0</strong></article><article class="metric-card"><p>Checksum valid</p><strong id="ar-valid">0</strong></article><article class="metric-card"><p>Addresses derived</p><strong id="ar-derived">0</strong></article><article class="metric-card"><p>Current speed</p><strong id="ar-rate">—</strong></article></div>
+  </section>
+
+  <section id="ar-result-panel" class="panel history-panel" hidden>
+    <p class="step">EXACT MATCH FOUND</p><h2>Recovered phrase</h2><p class="disclaimer">The result is shown only after a locally derived public address exactly matches the address you supplied.</p>
+    <textarea id="ar-result" class="secret-input secret-hidden" rows="4" readonly autocomplete="off" spellcheck="false"></textarea>
+    <p id="ar-result-meta" class="mono"></p>
+    <div class="actions"><button id="ar-reveal" class="secondary" type="button">Reveal result</button><button id="ar-copy" class="secondary" type="button">Copy result</button><button id="ar-erase" class="secondary" type="button">Erase result</button></div>
+  </section>
+</main>
+<script src="/vendor/ethers.umd.min.js" defer></script>
+<script src="/advanced-recovery.js" defer></script>
+<script src="/site-pages.js" defer></script>
+<script src="/global-ui.js" defer></script>
+</body>
+</html>
