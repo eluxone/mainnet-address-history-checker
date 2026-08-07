@@ -1,13 +1,13 @@
 {
   "name": "mainnet-address-history-checker",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "check": "node --check api/check-address.mjs && node --check api/audit-addresses.mjs && node --check api/login.mjs && node --check api/btc-background-jobs.mjs && node --check api/btc-background-worker.mjs && node --check app.js && node --check recovery.js && node --check recovery-assistant.js && node --check login.js && node --check middleware.js && node --check scripts/copy-vendor.mjs",
+    "check": "node --check api/_auth.mjs && node --check api/login.mjs && node --check api/admin-users.mjs && node --check api/admin-activity.mjs && node --check api/me.mjs && node --check api/activity.mjs && node --check api/dashboard.mjs && node --check api/notifications.mjs && node --check api/jobs.mjs && node --check api/exports.mjs && node --check api/evm-approvals.mjs && node --check api/check-address.mjs && node --check api/audit-addresses.mjs && node --check api/btc-preview.mjs && node --check api/btc-discovery-v3.mjs && node --check api/btc-background-jobs.mjs && node --check api/btc-background-worker.mjs && node --check api/evm-background-jobs.mjs && node --check api/evm-background-worker.mjs && node --check api/btc-saved-searches.mjs && node --check api/btc-watchlist.mjs && node --check api/btc-research.mjs && node --check global-ui.js && node --check user-shell.js && node --check dashboard.js && node --check admin.js && node --check notifications.js && node --check jobs.js && node --check address-workspace.js && node --check exports.js && node --check approvals.js && node --check app.js && node --check recovery.js && node --check recovery-assistant.js && node --check login.js && node --check middleware.js && node --check scripts/copy-vendor.mjs",
     "vercel-build": "node scripts/copy-vendor.mjs",
     "dev": "vercel dev"
   },
