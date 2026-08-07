@@ -1,95 +1,11 @@
-const COOKIE_NAME = 'wallet_tool_session';
-
-function parseCookies(header) {
-  return Object.fromEntries(
-    String(header || '')
-      .split(';')
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => {
-        const separator = part.indexOf('=');
-        return separator < 0
-          ? [part, '']
-          : [part.slice(0, separator), part.slice(separator + 1)];
-      })
-  );
-}
-
-function normalizeSecret(value) {
-  let normalized = String(value ?? '').trim();
-  if (normalized.length >= 2) {
-    const first = normalized[0];
-    const last = normalized[normalized.length - 1];
-    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
-      normalized = normalized.slice(1, -1).trim();
-    }
-  }
-  return normalized;
-}
-
-function configuredSecret() {
-  return normalizeSecret(process.env.WALLET_TOOL_PASSWORD)
-    || normalizeSecret(process.env.SITE_PASSWORD);
-}
-
-function toBase64Url(bytes) {
-  let binary = '';
-  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
-  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '');
-}
-
-async function sign(value, secret) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  return toBase64Url(await crypto.subtle.sign('HMAC', key, encoder.encode(value)));
-}
-
-function constantTimeEqual(left, right) {
-  if (left.length !== right.length) return false;
-  let mismatch = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  }
-  return mismatch === 0;
-}
-
-async function validSession(request, secret) {
-  const token = parseCookies(request.headers.get('cookie'))[COOKIE_NAME];
-  if (!token) return false;
-
-  const separator = token.indexOf('.');
-  if (separator < 1) return false;
-  const expiresAt = token.slice(0, separator);
-  const suppliedSignature = token.slice(separator + 1);
-  if (!/^\d+$/u.test(expiresAt) || Number(expiresAt) <= Math.floor(Date.now() / 1000)) return false;
-
-  const expectedSignature = await sign(expiresAt, secret);
-  return constantTimeEqual(suppliedSignature, expectedSignature);
-}
-
-export default async function middleware(request) {
-  const secret = configuredSecret();
-  if (!secret) {
-    return new Response('WALLET_TOOL_PASSWORD or SITE_PASSWORD is not configured.', {
-      status: 503,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
-    });
-  }
-
-  if (await validSession(request, secret)) return;
-
-  const url = new URL(request.url);
-  const loginUrl = new URL('/login.html', url.origin);
-  loginUrl.searchParams.set('next', `${url.pathname}${url.search}`);
-  return Response.redirect(loginUrl, 307);
-}
-
-export const config = {
-  matcher: ['/((?!login.html|login.js|styles.css|favicon.ico|api/login).*)']
-};
+const COOKIE_NAME='chainlab_session';
+function parseCookies(header){return Object.fromEntries(String(header||'').split(';').map(x=>x.trim()).filter(Boolean).map(part=>{const i=part.indexOf('=');return i<0?[part,'']:[part.slice(0,i),part.slice(i+1)]}))}
+function normalizeSecret(value){let s=String(value??'').trim();if(s.length>=2&&((s[0]==='"'&&s.at(-1)==='"')||(s[0]==="'"&&s.at(-1)==="'")))s=s.slice(1,-1).trim();return s}
+function secret(){return normalizeSecret(process.env.AUTH_SESSION_SECRET)||normalizeSecret(process.env.SITE_PASSWORD)||normalizeSecret(process.env.WALLET_TOOL_PASSWORD)||normalizeSecret(process.env.APP_ACCESS_TOKEN)}
+function b64url(bytes){let binary='';for(const byte of new Uint8Array(bytes))binary+=String.fromCharCode(byte);return btoa(binary).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'')}
+async function sign(value,keyText){const enc=new TextEncoder();const key=await crypto.subtle.importKey('raw',enc.encode(keyText),{name:'HMAC',hash:'SHA-256'},false,['sign']);return b64url(await crypto.subtle.sign('HMAC',key,enc.encode(value)))}
+function equal(a,b){if(a.length!==b.length)return false;let m=0;for(let i=0;i<a.length;i++)m|=a.charCodeAt(i)^b.charCodeAt(i);return m===0}
+function decodeB64url(s){s=s.replaceAll('-','+').replaceAll('_','/');while(s.length%4)s+='=';return decodeURIComponent(Array.from(atob(s)).map(c=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0')).join(''))}
+async function valid(req,key){const token=parseCookies(req.headers.get('cookie'))[COOKIE_NAME];if(!token)return false;const dot=token.lastIndexOf('.');if(dot<1)return false;const body=token.slice(0,dot),sig=token.slice(dot+1);if(!equal(await sign(body,key),sig))return false;try{const p=JSON.parse(decodeB64url(body));return Boolean(p?.uid&&Number(p.exp)>Math.floor(Date.now()/1000))}catch{return false}}
+export default async function middleware(request){const key=secret();if(!key)return new Response('Authentication secret is not configured.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});if(await valid(request,key))return;const url=new URL(request.url);const login=new URL('/login.html',url.origin);login.searchParams.set('next',`${url.pathname}${url.search}`);return Response.redirect(login,307)}
+export const config={matcher:['/((?!login.html|login.js|global-ui.js|global-2026.css|site-pages.js|styles.css|favicon.ico|api/login|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff2?)$).*)']};
